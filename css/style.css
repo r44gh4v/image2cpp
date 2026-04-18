@@ -223,8 +223,12 @@ input[type="range"]::-webkit-slider-runnable-track {
     .panel-result { 
         position: sticky; 
         top: calc(43px + 1rem); 
-
-
+        z-index: 10; 
+        height: 60vh; 
+        min-height: 400px; 
+    }
+    .code-area { flex-grow: 1; min-height: unset; }
+}
 
 
 

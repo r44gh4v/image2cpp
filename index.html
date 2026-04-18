@@ -23,14 +23,14 @@
         <section class="panel panel-setup">
             <div class="card">
                 <div class="card-header">
-                    <h2>1. Image Source</h2>
+                    <h2>1. Input Source</h2>
                 </div>
                 <div class="drop-zone" id="drop-zone">
                     <svg width="24" height="24" style="margin: 0 auto; color: var(--text-muted);" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
                     <span class="drop-text">Drop file or Browse</span>
-                    <span class="drop-hint">PNG, JPEG, GIF, WEBP</span>
+                    <span class="drop-hint">GIF, PNG, JPEG, WEBP</span>
                 </div>
-                <input type="file" id="file-input" style="display: none;">
+                <input type="file" id="file-input" style="display: none;" accept="image/png, image/jpeg, image/gif, image/webp">
             </div>
 
             <div class="card">
@@ -73,7 +73,7 @@
         <section class="panel panel-tuning">
             <div class="card">
                 <div class="card-header">
-                    <h2>3. Pixel Tuning</h2>
+                    <h2>3. Media Tune</h2>
                 </div>
                 
                 <div class="setting-group">
@@ -117,7 +117,7 @@
 
             <div class="card">
                 <div class="card-header">
-                    <h2>4. Array Format</h2>
+                    <h2>4. Code Tune</h2>
                 </div>
                 <div class="setting-group">
                     <select id="draw-mode" class="custom-select">
@@ -141,7 +141,7 @@
         <section class="panel panel-result">
             <div class="card flex-col">
                 <div class="card-header">
-                    <h2>5. Results</h2>
+                    <h2>5. Output Preview</h2>
                     <div class="header-actions">
                         <select id="preview-theme" class="custom-select sm">
                             <option value="oled-white">OLED: White</option>
@@ -163,11 +163,11 @@
                     <div class="code-toolbar">
                         <span class="code-title">C++ Byte Array</span>
                         <div class="code-actions">
-                            <button class="action-btn outline" id="btn-copy" title="Copy to Clipboard"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg></button>
-                            <button class="action-btn outline" id="btn-download" title="Download .h File"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg></button>
+                            <button class="action-btn outline" id="btn-copy" title="Copy to Clipboard"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg> Copy</button> 
+                            <button class="action-btn outline" id="btn-download" title="Download .h File"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg> .h</button>
                         </div>
                     </div>
-                    <textarea id="code-output" readonly spellcheck="false" placeholder="// Processed array output..."></textarea>
+                    <textarea id="code-output" readonly spellcheck="false" placeholder="// Cooked output..."></textarea>
                 </div>
             </div>
         </section>
