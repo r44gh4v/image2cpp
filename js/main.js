@@ -19,6 +19,8 @@ const AppState = {
 
 const UI = {
     init() {
+        initCustomSelects();
+        initCustomSelects();
         this.dropZone = document.getElementById("drop-zone");
         this.fileInput = document.getElementById("file-input");
         this.canvasWidth = document.getElementById("canvas-width");
@@ -214,6 +216,8 @@ const UI = {
 
 const App = {
     init() {
+        initCustomSelects();
+        initCustomSelects();
         UI.init();
         this.updatePreview();
     },
@@ -497,3 +501,143 @@ document.addEventListener("DOMContentLoaded", () => App.init());
 
 
 
+
+
+function initCustomSelects() {
+    document.querySelectorAll('select.custom-select').forEach(select => {
+        if (select.nextElementSibling && select.nextElementSibling.classList.contains('custom-select-wrapper')) return;
+        
+        const wrapper = document.createElement('div');
+        wrapper.className = 'custom-select-wrapper ' + (select.classList.contains('sm') ? 'sm' : '');
+        
+        const trigger = document.createElement('div');
+        trigger.className = 'custom-select-trigger';
+        
+        const textSpan = document.createElement('span');
+        const selectedOption = select.options[select.selectedIndex];
+        textSpan.textContent = selectedOption ? selectedOption.text : '';
+        trigger.appendChild(textSpan);
+        
+        const icon = document.createElement('div');
+        icon.className = 'custom-select-icon';
+        icon.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>';
+        trigger.appendChild(icon);
+        
+        const dropdown = document.createElement('div');
+        dropdown.className = 'custom-select-dropdown';
+        
+        Array.from(select.options).forEach((option, index) => {
+            const item = document.createElement('div');
+            item.className = 'custom-select-option' + (index === select.selectedIndex ? ' selected' : '');
+            item.textContent = option.text;
+            item.addEventListener('click', (e) => {
+                e.stopPropagation();
+                select.selectedIndex = index;
+                textSpan.textContent = option.text;
+                select.dispatchEvent(new Event('change'));
+                
+                dropdown.querySelectorAll('.custom-select-option').forEach(opt => opt.classList.remove('selected'));
+                item.classList.add('selected');
+                
+                wrapper.classList.remove('open');
+            });
+            dropdown.appendChild(item);
+        });
+        
+        wrapper.appendChild(trigger);
+        wrapper.appendChild(dropdown);
+        
+        select.style.display = 'none';
+        select.parentNode.insertBefore(wrapper, select.nextSibling);
+
+        trigger.addEventListener('click', (e) => {
+            e.stopPropagation();
+            document.querySelectorAll('.custom-select-wrapper').forEach(w => {
+                if(w !== wrapper) w.classList.remove('open');
+            });
+            wrapper.classList.toggle('open');
+        });
+        
+        select.addEventListener('change', () => {
+             const idx = select.selectedIndex;
+             const opts = dropdown.querySelectorAll('.custom-select-option');
+             opts.forEach(o => o.classList.remove('selected'));
+             if(opts[idx]) opts[idx].classList.add('selected');
+             textSpan.textContent = select.options[idx].text;
+        });
+    });
+
+    document.addEventListener('click', () => {
+        document.querySelectorAll('.custom-select-wrapper').forEach(w => w.classList.remove('open'));
+    });
+}
+
+
+function initCustomSelects() {
+    document.querySelectorAll('select.custom-select').forEach(select => {
+        if (select.nextElementSibling && select.nextElementSibling.classList.contains('custom-select-wrapper')) return;
+        
+        const wrapper = document.createElement('div');
+        wrapper.className = 'custom-select-wrapper ' + (select.classList.contains('sm') ? 'sm' : '');
+        
+        const trigger = document.createElement('div');
+        trigger.className = 'custom-select-trigger';
+        
+        const textSpan = document.createElement('span');
+        const selectedOption = select.options[select.selectedIndex];
+        textSpan.textContent = selectedOption ? selectedOption.text : '';
+        trigger.appendChild(textSpan);
+        
+        const icon = document.createElement('div');
+        icon.className = 'custom-select-icon';
+        icon.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>';
+        trigger.appendChild(icon);
+        
+        const dropdown = document.createElement('div');
+        dropdown.className = 'custom-select-dropdown';
+        
+        Array.from(select.options).forEach((option, index) => {
+            const item = document.createElement('div');
+            item.className = 'custom-select-option' + (index === select.selectedIndex ? ' selected' : '');
+            item.textContent = option.text;
+            item.addEventListener('click', (e) => {
+                e.stopPropagation();
+                select.selectedIndex = index;
+                textSpan.textContent = option.text;
+                select.dispatchEvent(new Event('change'));
+                
+                dropdown.querySelectorAll('.custom-select-option').forEach(opt => opt.classList.remove('selected'));
+                item.classList.add('selected');
+                
+                wrapper.classList.remove('open');
+            });
+            dropdown.appendChild(item);
+        });
+        
+        wrapper.appendChild(trigger);
+        wrapper.appendChild(dropdown);
+        
+        select.style.display = 'none';
+        select.parentNode.insertBefore(wrapper, select.nextSibling);
+
+        trigger.addEventListener('click', (e) => {
+            e.stopPropagation();
+            document.querySelectorAll('.custom-select-wrapper').forEach(w => {
+                if(w !== wrapper) w.classList.remove('open');
+            });
+            wrapper.classList.toggle('open');
+        });
+        
+        select.addEventListener('change', () => {
+             const idx = select.selectedIndex;
+             const opts = dropdown.querySelectorAll('.custom-select-option');
+             opts.forEach(o => o.classList.remove('selected'));
+             if(opts[idx]) opts[idx].classList.add('selected');
+             textSpan.textContent = select.options[idx].text;
+        });
+    });
+
+    document.addEventListener('click', () => {
+        document.querySelectorAll('.custom-select-wrapper').forEach(w => w.classList.remove('open'));
+    });
+}
