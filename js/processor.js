@@ -111,13 +111,12 @@ const Processor = {
         const invert = settings.invert;
         const invertBg = settings.invertBg;
         const dither = settings.dither;
-        const brightness = settings.brightness || 0;
         const contrast = settings.contrast || 0;
 
         // Calculate contrast factor
         const factor = (259 * (contrast + 255)) / (255 * (259 - contrast));
 
-        // Pass 1: Convert to Grayscale and adjust brightness/contrast
+        // Pass 1: Convert to Grayscale and adjust contrast
         for (let i = 0; i < data.length; i += 4) {
             const alpha = data[i + 3];
 
@@ -128,10 +127,9 @@ const Processor = {
 
             // Perceptual Luminance conversion
             let gray = 0.299 * data[i] + 0.587 * data[i + 1] + 0.114 * data[i + 2];
-            
+
             // Only apply adjustments to actual image pixels
             if (alpha >= 128) {
-                gray += brightness;
                 gray = factor * (gray - 128) + 128;
                 if (gray < 0) gray = 0; else if (gray > 255) gray = 255;
             } else {

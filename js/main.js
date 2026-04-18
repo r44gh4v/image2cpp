@@ -25,9 +25,7 @@ const UI = {
         this.canvasHeight = document.getElementById("canvas-height");
         this.btnSwapWh = document.getElementById("btn-swap-wh");
         this.scaleSelect = document.getElementById("setting-scale");
-        
-        this.brightnessInput = document.getElementById("setting-brightness");
-        this.brightnessVal = document.getElementById("brightness-val");
+
         this.contrastInput = document.getElementById("setting-contrast");
         this.contrastVal = document.getElementById("contrast-val");
         this.thresholdInput = document.getElementById("setting-threshold");
@@ -154,10 +152,6 @@ const UI = {
         wrapInvertBg.style.display = this.invertCheck.checked ? "inline-flex" : "none";
 
         // Live Slider Updates
-        this.brightnessInput.addEventListener("input", e => {
-            this.brightnessVal.textContent = e.target.value;
-            App.updatePreview();
-        });
         this.contrastInput.addEventListener("input", e => {
             this.contrastVal.textContent = e.target.value;
             App.updatePreview();
@@ -199,6 +193,13 @@ const App = {
             return alert("Only images are supported.");
         }
         
+        // Auto-set Variable Name based on file name
+        let fileName = file.name.split('.').slice(0, -1).join('.');
+        fileName = fileName.replace(/[^a-zA-Z0-9_]/g, '_').replace(/^[0-9]/, '_$&');
+        if(fileName) {
+            UI.optVarName.value = fileName;
+        }
+
         // Reset animation configurations completely from previous files
         AppState.currentFrame = 0;
         AppState.isPaused = false;
@@ -239,7 +240,7 @@ const App = {
             width: parseInt(UI.canvasWidth.value) || 128, 
             height: parseInt(UI.canvasHeight.value) || 64,
             scale: UI.scaleSelect.value, 
-            brightness: parseInt(UI.brightnessInput.value),
+
             contrast: parseInt(UI.contrastInput.value),
             threshold: parseInt(UI.thresholdInput.value),
             dither: UI.ditherCheck.checked,
@@ -266,12 +267,7 @@ const App = {
         AppState.isUpdatingSliders = true;
         let t = Processor.gifFrames[idx].tuning || {};
         
-        UI.brightnessInput.value = t.brightness !== undefined ? t.brightness : 0;
-        UI.brightnessVal.textContent = UI.brightnessInput.value;
-        
-        UI.contrastInput.value = t.contrast !== undefined ? t.contrast : 0;
-        UI.contrastVal.textContent = UI.contrastInput.value;
-        
+
         UI.thresholdInput.value = t.threshold !== undefined ? t.threshold : 128;
         UI.thresholdVal.textContent = UI.thresholdInput.value;
         
@@ -356,7 +352,6 @@ const App = {
                 // Save tuning state into the current frame
                 let f = Processor.gifFrames[AppState.currentFrame];
                 if (!f.tuning) f.tuning = {};
-                f.tuning.brightness = parseInt(UI.brightnessInput.value);
                 f.tuning.contrast = parseInt(UI.contrastInput.value);
                 f.tuning.threshold = parseInt(UI.thresholdInput.value);
                 f.tuning.dither = UI.ditherCheck.checked;
@@ -365,7 +360,6 @@ const App = {
             } else {
                 Processor.gifFrames.forEach(f => {
                     if (!f.tuning) f.tuning = {};
-                    f.tuning.brightness = parseInt(UI.brightnessInput.value);
                     f.tuning.contrast = parseInt(UI.contrastInput.value);
                     f.tuning.threshold = parseInt(UI.thresholdInput.value);
                     f.tuning.dither = UI.ditherCheck.checked;
@@ -394,7 +388,7 @@ const App = {
                 
                 const playIcon = document.createElement("div");
                 playIcon.className = "thumb-label play-icon";
-                playIcon.innerHTML = `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="2" width="20" height="20" rx="2.18" ry="2.18"></rect><line x1="7" y1="2" x2="7" y2="22"></line><line x1="17" y1="2" x2="17" y2="22"></line><line x1="2" y1="12" x2="22" y2="12"></line><line x1="2" y1="7" x2="7" y2="7"></line><line x1="2" y1="17" x2="7" y2="17"></line><line x1="17" y1="17" x2="22" y2="17"></line><line x1="17" y1="7" x2="22" y2="7"></line></svg>`;
+                playIcon.innerHTML = `<svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>`;
 
                 animWrap.appendChild(animThumb);
                 animWrap.appendChild(playIcon);
