@@ -64,16 +64,21 @@ const UI = {
             }
         });
 
+        const doFastUpdate = () => {
+            App.updatePreview(true);
+            setTimeout(() => App.updatePreview(false), 50);
+        };
+
         // Transforms
-        this.btnFlipH.addEventListener("click", () => { AppState.tFlipH = !AppState.tFlipH; App.updatePreview(); });
-        this.btnFlipV.addEventListener("click", () => { AppState.tFlipV = !AppState.tFlipV; App.updatePreview(); });
-        this.btnRotate.addEventListener("click", () => { AppState.tRotate = (AppState.tRotate + 90) % 360; App.updatePreview(); });
+        this.btnFlipH.addEventListener("click", () => { AppState.tFlipH = !AppState.tFlipH; doFastUpdate(); });
+        this.btnFlipV.addEventListener("click", () => { AppState.tFlipV = !AppState.tFlipV; doFastUpdate(); });
+        this.btnRotate.addEventListener("click", () => { AppState.tRotate = (AppState.tRotate + 90) % 360; doFastUpdate(); });
 
         // Pause toggle
         this.previewCanvas.addEventListener("click", () => {
             if(Processor.sourceIsGif) {
                 AppState.isPaused = !AppState.isPaused;
-                App.updatePreview(); // Re-render to show correct active state
+                doFastUpdate(); // Re-render to show correct active state
             }
         });
 
@@ -83,7 +88,7 @@ const UI = {
                 const [w, h] = e.target.dataset.preset.split('x');
                 this.canvasWidth.value = w;
                 this.canvasHeight.value = h;
-                App.updatePreview();
+                doFastUpdate();
             });
         });
 
@@ -92,7 +97,7 @@ const UI = {
             const w = this.canvasWidth.value;
             this.canvasWidth.value = this.canvasHeight.value;
             this.canvasHeight.value = w;
-            App.updatePreview();
+            doFastUpdate();
         });
 
         // Isolated & Defused File Upload Logic
@@ -139,9 +144,12 @@ const UI = {
         const triggerElements = [
             this.canvasWidth, this.canvasHeight, this.scaleSelect,
             this.ditherCheck, this.invertCheck, this.invertBgCheck, this.optFormat,
-            this.optDrawMode, this.optVarName, this.previewTheme
+            this.optDrawMode, this.previewTheme
         ];
-        triggerElements.forEach(el => el.addEventListener("change", () => App.updatePreview()));
+        triggerElements.forEach(el => el.addEventListener("change", () => {
+            App.updatePreview(true);
+            setTimeout(() => App.updatePreview(false), 50);
+        }));
 
         // Invert BG Logic
         const wrapInvertBg = document.getElementById("wrap-invert-bg");
@@ -152,15 +160,37 @@ const UI = {
         wrapInvertBg.style.display = this.invertCheck.checked ? "inline-flex" : "none";
 
         // Live Slider Updates
+        let sliderTID = null;
+        const doLiveSlider = () => {
+            App.updatePreview(true);
+            if(sliderTID) clearTimeout(sliderTID);
+            sliderTID = setTimeout(() => App.updatePreview(false), 150);
+        };
+
+        const resetSlider = (input, valSpan, defaultVal) => {
+            input.value = defaultVal;
+            valSpan.textContent = defaultVal;
+            doLiveSlider();
+        };
+
         this.contrastInput.addEventListener("input", e => {
             this.contrastVal.textContent = e.target.value;
-            App.updatePreview();
+            doLiveSlider();
         });
+        this.contrastInput.addEventListener("dblclick", () => resetSlider(this.contrastInput, this.contrastVal, 0));
+        this.contrastVal.addEventListener("click", () => resetSlider(this.contrastInput, this.contrastVal, 0));
+
         this.thresholdInput.addEventListener("input", e => {
             this.thresholdVal.textContent = e.target.value;
-            App.updatePreview();
+            doLiveSlider();
         });
-        this.optVarName.addEventListener("input", () => App.updatePreview());
+        this.thresholdInput.addEventListener("dblclick", () => resetSlider(this.thresholdInput, this.thresholdVal, 128));
+        this.thresholdVal.addEventListener("click", () => resetSlider(this.thresholdInput, this.thresholdVal, 128));
+
+        this.optVarName.addEventListener("input", () => {
+            if(sliderTID) clearTimeout(sliderTID);
+            sliderTID = setTimeout(() => App.updatePreview(false), 150);
+        });
 
         // Exports
         this.btnCopy.addEventListener("click", () => {
@@ -267,12 +297,8 @@ const App = {
         AppState.isUpdatingSliders = true;
         let t = Processor.gifFrames[idx].tuning || {};
         
-
-        UI.thresholdInput.value = t.threshold !== undefined ? t.threshold : 128;
-        UI.thresholdVal.textContent = UI.thresholdInput.value;
-        
-        if (t.dither !== undefined) UI.ditherCheck.checked = t.dither;
-        if (t.invert !== undefined) UI.invertCheck.checked = t.invert;
+        UI.contrastInput.value = t.contrast !== undefined ? t.contrast : 0;
+        UI.contrastVal.textContent = UI.contrastInput.value;
         if (t.invertBg !== undefined) UI.invertBgCheck.checked = t.invertBg;
 
         AppState.isUpdatingSliders = false;
@@ -321,7 +347,7 @@ const App = {
         renderNextFrame();
     },
 
-    updatePreview() {
+    updatePreview(isLive = false) {
         if (AppState.isUpdatingSliders) return;
 
         const setCurrent = this.getSettings(AppState.isPaused ? AppState.currentFrame : -1);
@@ -433,8 +459,10 @@ const App = {
                 if (AppState.isPaused) {
                     this.renderSingleThumbnail(AppState.currentFrame);
                 } else {
-                    for(let i=0; i<Processor.gifFrames.length; i++) this.renderSingleThumbnail(i);
-                    Processor.processFrame(UI.timeline.children[0].querySelector('canvas'), Processor.gifFrames[0].imgData, this.getSettings(0));
+                    if(!isLive) {
+                        for(let i=0; i<Processor.gifFrames.length; i++) this.renderSingleThumbnail(i);
+                        Processor.processFrame(UI.timeline.children[0].querySelector('canvas'), Processor.gifFrames[0].imgData, this.getSettings(0));
+                    }
                 }
             }
 
@@ -457,9 +485,15 @@ const App = {
             Processor.processFrame(UI.previewCanvas, Processor.sourceImage, setCurrent);
         }
         
-        UI.codeOutput.value = Generator.generate(setGlobal);
+        if(!isLive) {
+            UI.codeOutput.value = Generator.generate(setGlobal);
+        }
     }
 };
 
 document.addEventListener("DOMContentLoaded", () => App.init());
+
+
+
+
 

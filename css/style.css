@@ -107,6 +107,9 @@ label { font-weight: 500; color: var(--text-muted); font-size: 12px; }
     padding: 0.15rem 0.4rem; border-radius: var(--radius-sm);
     font-family: var(--font-code); font-size: 11px; font-weight: 600;
 }
+.badge.interactive { cursor: pointer; transition: all 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275); user-select: none; }
+.badge.interactive:hover { background: var(--accent); color: #000; transform: scale(1.15); box-shadow: 0 4px 12px rgba(0,0,0,0.5); }
+.badge.interactive:active { transform: scale(0.95); }
 .icon-heading svg { margin-bottom: 2px; opacity: 0.85; stroke-width: 2.2px; }
 
 input[type="number"], input[type="text"], .custom-select {
