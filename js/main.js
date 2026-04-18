@@ -284,8 +284,10 @@ const App = {
 
     renderSingleThumbnail(idx) {
         if (UI.timeline.children.length > idx + 1) {
-            const thumb = UI.timeline.children[idx + 1];
-            Processor.processFrame(thumb, Processor.gifFrames[idx].imgData, this.getSettings(idx));
+            const thumb = UI.timeline.children[idx + 1].querySelector('canvas');
+            if (thumb) {
+                Processor.processFrame(thumb, Processor.gifFrames[idx].imgData, this.getSettings(idx));
+            }
         }
     },
 
@@ -305,10 +307,9 @@ const App = {
                 const frTxt = ` | GIF: ${AppState.currentFrame + 1}/${Processor.gifFrames.length} fr`;
                 UI.previewInfo.textContent = `${set.width} × ${set.height}${frTxt}`;
                 
-                document.querySelectorAll('.gif-frame-thumb').forEach((el, idx) => {
-                    el.classList.toggle('active', idx === 0); // "Play Full" thumb is active
+                document.querySelectorAll('.gif-thumb-wrap').forEach((el, idx) => {
+                    el.classList.toggle('active', idx === 0);
                 });
-                
                 AppState.currentFrame = (AppState.currentFrame + 1) % Processor.gifFrames.length;
                 
                 let delay = frame.delay * 10 || 100;
@@ -380,58 +381,79 @@ const App = {
 
             if (needsRebuild) {
                 UI.timeline.innerHTML = ""; 
-                const animThumb = document.createElement("canvas");
-                animThumb.className = "gif-frame-thumb animation-thumb " + (!AppState.isPaused ? "active" : "");
-                animThumb.title = "Play Full Animation";
-                animThumb.onclick = () => { 
-                    AppState.isPaused = false; 
-
-                };
                 
-                animThumb.width = setCurrent.width; 
+                const animWrap = document.createElement("div");
+                animWrap.className = "gif-thumb-wrap " + (!AppState.isPaused ? "active" : "");
+                animWrap.title = "Play Full Animation";
+                
+                const animThumb = document.createElement("canvas");
+                animThumb.className = "gif-frame-thumb animation-thumb";
+                animThumb.width = setCurrent.width;
                 animThumb.height = setCurrent.height;
                 Processor.processFrame(animThumb, Processor.gifFrames[0].imgData, this.getSettings(0));
-                UI.timeline.appendChild(animThumb);
                 
+                const playIcon = document.createElement("div");
+                playIcon.className = "thumb-label play-icon";
+                playIcon.innerHTML = `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="2" width="20" height="20" rx="2.18" ry="2.18"></rect><line x1="7" y1="2" x2="7" y2="22"></line><line x1="17" y1="2" x2="17" y2="22"></line><line x1="2" y1="12" x2="22" y2="12"></line><line x1="2" y1="7" x2="7" y2="7"></line><line x1="2" y1="17" x2="7" y2="17"></line><line x1="17" y1="17" x2="22" y2="17"></line><line x1="17" y1="7" x2="22" y2="7"></line></svg>`;
+
+                animWrap.appendChild(animThumb);
+                animWrap.appendChild(playIcon);
+                animWrap.onclick = () => {
+                    AppState.isPaused = false;
+                    this.applyFrameSlidersToUI(0);
+                    this.updatePreview();
+                };
+                UI.timeline.appendChild(animWrap);
+
                 Processor.gifFrames.forEach((fr, idx) => {
+                    const thumbWrap = document.createElement("div");
+                    thumbWrap.className = "gif-thumb-wrap " + (AppState.isPaused && AppState.currentFrame === idx ? "active" : "");
+                    thumbWrap.title = `Frame ${idx + 1}`;
+
                     const thumb = document.createElement("canvas");
-                    thumb.className = "gif-frame-thumb " + (AppState.isPaused && AppState.currentFrame === idx ? "active" : "");
-                    thumb.title = `Frame ${idx + 1}`;
-                    thumb.width = setCurrent.width; 
+                    thumb.className = "gif-frame-thumb";
+                    thumb.width = setCurrent.width;
                     thumb.height = setCurrent.height;
                     Processor.processFrame(thumb, fr.imgData, this.getSettings(idx));
-                    
-                    thumb.onclick = () => {
+
+                    const frameLbl = document.createElement("div");
+                    frameLbl.className = "thumb-label";
+                    frameLbl.textContent = idx + 1;
+
+                    thumbWrap.appendChild(thumb);
+                    thumbWrap.appendChild(frameLbl);
+
+                    thumbWrap.onclick = () => {
                         AppState.isPaused = true;
                         AppState.currentFrame = idx;
                         this.applyFrameSlidersToUI(idx);
                         Processor.processFrame(UI.previewCanvas, fr.imgData, this.getSettings(idx));
-                        document.querySelectorAll('.gif-frame-thumb').forEach((el, i) => {
+                        document.querySelectorAll('.gif-thumb-wrap').forEach((el, i) => {
                             el.classList.toggle('active', i === idx + 1);
                         });
                         this.updatePreview();
                     };
-                    UI.timeline.appendChild(thumb);
+                    UI.timeline.appendChild(thumbWrap);
                 });
             } else {
                 if (AppState.isPaused) {
                     this.renderSingleThumbnail(AppState.currentFrame);
                 } else {
                     for(let i=0; i<Processor.gifFrames.length; i++) this.renderSingleThumbnail(i);
-                    Processor.processFrame(UI.timeline.children[0], Processor.gifFrames[0].imgData, this.getSettings(0));
+                    Processor.processFrame(UI.timeline.children[0].querySelector('canvas'), Processor.gifFrames[0].imgData, this.getSettings(0));
                 }
             }
 
             if (AppState.isPaused) {
                 Processor.processFrame(UI.previewCanvas, Processor.gifFrames[AppState.currentFrame].imgData, this.getSettings(AppState.currentFrame));
-                document.querySelectorAll('.gif-frame-thumb').forEach((el, i) => {
+                document.querySelectorAll('.gif-thumb-wrap').forEach((el, i) => {
                     el.classList.toggle('active', i === AppState.currentFrame + 1);
                 });
             } else {
                 if(!AppState.gifTimer) this.playGif();
             }
-            
-            AppState.lastW = setCurrent.width; 
+
+            AppState.lastW = setCurrent.width;
             AppState.lastH = setCurrent.height; 
             AppState.lastScale = setCurrent.scale;
         } else {

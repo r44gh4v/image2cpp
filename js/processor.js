@@ -20,13 +20,36 @@ const Processor = {
         this.gifFrames = [];
         this.sourceImage = { width: reader.width, height: reader.height };
 
+        const framePixels = new Uint8ClampedArray(reader.width * reader.height * 4);
+        let prevPixels = null;
+
         for (let i = 0; i < reader.numFrames(); i++) {
             const frameInfo = reader.frameInfo(i);
-            const framePixels = new Uint8ClampedArray(reader.width * reader.height * 4);
-            reader.decodeAndBlitFrameRGBA(i, framePixels);
             
-            const imgData = new ImageData(framePixels, reader.width, reader.height);
+            if (frameInfo.disposal === 3) {
+                prevPixels = new Uint8ClampedArray(framePixels);
+            }
+
+            reader.decodeAndBlitFrameRGBA(i, framePixels);
+
+            const imgData = new ImageData(new Uint8ClampedArray(framePixels), reader.width, reader.height);
             this.gifFrames.push({ imgData, delay: frameInfo.delay });
+
+            // Handle disposal for the NEXT frame
+            const disposal = frameInfo.disposal;
+            if (disposal === 2) {
+                for (let y = frameInfo.y; y < frameInfo.y + frameInfo.height; y++) {
+                    for (let x = frameInfo.x; x < frameInfo.x + frameInfo.width; x++) {
+                        const idx = (y * reader.width + x) * 4;
+                        framePixels[idx] = 0;
+                        framePixels[idx+1] = 0;
+                        framePixels[idx+2] = 0;
+                        framePixels[idx+3] = 0;
+                    }
+                }
+            } else if (disposal === 3 && prevPixels) {
+                framePixels.set(prevPixels);
+            }
         }
         if (callback) callback();
     },
