@@ -78,7 +78,13 @@
 
     --app-header-height: 43px;
     --workspace-gap: 1rem;
-    --layout-inline-pad: clamp(0.5rem, 1.2vw, 1rem);
+    --screen-edge-gap: 0.7rem;
+    --layout-inline-pad: var(--screen-edge-gap);
+
+    --header-float-bg: linear-gradient(180deg, rgba(24, 24, 28, 0.94), rgba(16, 16, 19, 0.94));
+    --header-float-border: rgba(255, 255, 255, 0.08);
+    --header-float-radius: var(--radius-xl);
+    --header-float-shadow: 0 12px 26px rgba(0, 0, 0, 0.38), 0 2px 9px rgba(0, 0, 0, 0.32);
 
     --ring-size: 2px;
     --ring-offset: 2px;
@@ -116,14 +122,14 @@ body {
 }
 
 .app-header {
-    background: var(--surface);
-    border-bottom: 1px solid var(--border);
-    padding: 0.5rem var(--layout-inline-pad);
+    background: transparent;
+    border-bottom: none;
+    padding: var(--screen-edge-gap) var(--layout-inline-pad) 0;
     min-height: var(--app-header-height);
     flex-shrink: 0;
     position: sticky;
     top: 0;
-    z-index: 100;
+    z-index: 110;
 }
 
 .header-inner {
@@ -132,6 +138,13 @@ body {
     display: flex;
     align-items: center;
     gap: 1rem;
+    padding: 0.58rem 0.9rem;
+    border: 1px solid var(--header-float-border);
+    border-radius: var(--header-float-radius);
+    background: var(--header-float-bg);
+    box-shadow: var(--header-float-shadow);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
 }
 
 .brand {
@@ -152,7 +165,7 @@ body {
 .tagline {
     margin-top: 2px;
     padding-left: 1rem;
-    border-left: 1px solid var(--border);
+    border-left: 1px solid rgba(255, 255, 255, 0.12);
     color: var(--text-muted);
     font-size: 0.85rem;
 }
@@ -161,7 +174,7 @@ body {
     max-width: 1600px;
     width: 100%;
     margin: 0 auto;
-    padding: 1rem var(--layout-inline-pad);
+    padding: var(--screen-edge-gap) var(--layout-inline-pad) var(--screen-edge-gap);
     flex-grow: 1;
     display: grid;
     grid-template-columns: 280px 300px 1fr;
@@ -175,7 +188,10 @@ body {
     flex-direction: column;
     gap: 1rem;
     overflow-y: auto;
-    padding-right: 0.25rem;
+}
+
+.panel-result {
+    overflow-y: visible;
 }
 
 .card {
@@ -1028,15 +1044,29 @@ input[type="radio"],
         grid-column: 2;
         grid-row: 1 / span 2;
         position: sticky;
-        top: calc(var(--app-header-height) + var(--workspace-gap));
-        height: calc(100vh - var(--app-header-height) - (var(--workspace-gap) * 2));
-        max-height: calc(100vh - var(--app-header-height) - (var(--workspace-gap) * 2));
-        height: calc(100dvh - var(--app-header-height) - (var(--workspace-gap) * 2));
-        max-height: calc(100dvh - var(--app-header-height) - (var(--workspace-gap) * 2));
+        top: calc(var(--app-header-height) + var(--screen-edge-gap));
+        height: calc(100vh - var(--app-header-height) - (var(--screen-edge-gap) * 2));
+        max-height: calc(100vh - var(--app-header-height) - (var(--screen-edge-gap) * 2));
+        height: calc(100dvh - var(--app-header-height) - (var(--screen-edge-gap) * 2));
+        max-height: calc(100dvh - var(--app-header-height) - (var(--screen-edge-gap) * 2));
     }
 }
 
 @media (max-width: 768px) {
+    .app-header {
+        padding: var(--screen-edge-gap) var(--layout-inline-pad) 0;
+    }
+
+    .header-inner {
+        gap: 0.7rem;
+        padding: 0.5rem 0.72rem;
+        border-radius: var(--radius-xl);
+    }
+
+    .tagline {
+        display: none;
+    }
+
     .workspace {
         display: flex;
         flex-direction: column-reverse;
@@ -1044,13 +1074,13 @@ input[type="radio"],
 
     .panel-result {
         position: sticky;
-        top: calc(var(--app-header-height) + var(--workspace-gap));
+        top: calc(var(--app-header-height) + var(--screen-edge-gap));
         z-index: 10;
-        height: min(60vh, calc(100vh - var(--app-header-height) - (var(--workspace-gap) * 2)));
-        height: min(60dvh, calc(100dvh - var(--app-header-height) - (var(--workspace-gap) * 2)));
+        height: min(60vh, calc(100vh - var(--app-header-height) - (var(--screen-edge-gap) * 2)));
+        height: min(60dvh, calc(100dvh - var(--app-header-height) - (var(--screen-edge-gap) * 2)));
         min-height: 320px;
-        max-height: calc(100vh - var(--app-header-height) - (var(--workspace-gap) * 2));
-        max-height: calc(100dvh - var(--app-header-height) - (var(--workspace-gap) * 2));
+        max-height: calc(100vh - var(--app-header-height) - (var(--screen-edge-gap) * 2));
+        max-height: calc(100dvh - var(--app-header-height) - (var(--screen-edge-gap) * 2));
     }
 
     .code-area {
