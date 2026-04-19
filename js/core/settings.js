@@ -7,9 +7,10 @@
         scale: "fit",
         contrast: 0,
         threshold: 128,
+        processingMethod: "threshold",
         dither: false,
         invert: false,
-        invertBg: true,
+        invertBg: false,
         flipH: false,
         flipV: false,
         rotate: 0,
@@ -29,6 +30,7 @@
 
     const allowedValues = constants.ALLOWED_VALUES || {
         scale: ["fit", "stretch", "original"],
+        processingMethod: ["threshold"],
         outputFormat: ["arduino", "plain"],
         drawMode: ["vertical", "horizontal"],
         theme: ["oled-white", "oled-blue", "oled-yellow", "lcd-green"],
@@ -82,6 +84,10 @@
         return fallback;
     }
 
+    function normalizeProcessingMethod(value) {
+        return oneOf(value, allowedValues.processingMethod, defaultSettings.processingMethod);
+    }
+
     function normalizeRotate(value) {
         const step = limits.rotateStep || 90;
         const raw = toInteger(value, defaultSettings.rotate || 0);
@@ -103,6 +109,8 @@
 
     function normalizeFrameTuning(rawTuning) {
         const source = rawTuning || {};
+        const processingMethod = normalizeProcessingMethod(source.processingMethod);
+
         return {
             contrast: clampInteger(
                 source.contrast,
@@ -116,7 +124,8 @@
                 limits.threshold.max,
                 defaultSettings.threshold,
             ),
-            dither: toBoolean(source.dither, defaultSettings.dither),
+            processingMethod,
+            dither: false,
             invert: toBoolean(source.invert, defaultSettings.invert),
             invertBg: toBoolean(source.invertBg, defaultSettings.invertBg),
         };
@@ -132,6 +141,7 @@
             scale: oneOf(source.scale, allowedValues.scale, defaultSettings.scale),
             contrast: tuning.contrast,
             threshold: tuning.threshold,
+            processingMethod: tuning.processingMethod,
             dither: tuning.dither,
             invert: tuning.invert,
             invertBg: tuning.invertBg,

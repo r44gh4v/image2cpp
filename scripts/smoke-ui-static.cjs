@@ -26,7 +26,6 @@ const requiredIds = [
     "setting-scale",
     "setting-contrast",
     "setting-threshold",
-    "setting-dither",
     "setting-invert",
     "setting-invert-bg",
     "draw-mode",

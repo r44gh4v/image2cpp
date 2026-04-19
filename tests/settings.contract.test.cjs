@@ -28,9 +28,32 @@ const settings = require("../js/core/settings.js");
     assert.strictEqual(normalized.threshold, 255);
     assert.strictEqual(normalized.contrast, -255);
     assert.strictEqual(normalized.rotate, 270);
+    assert.strictEqual(normalized.processingMethod, "threshold");
+    assert.strictEqual(normalized.dither, false);
     assert.strictEqual(normalized.drawMode, "vertical");
     assert.strictEqual(normalized.outputFormat, "plain");
     assert.strictEqual(normalized.varName, "_1_logo");
+}
+
+{
+    const normalized = settings.normalizeSettings({ dither: "false" });
+
+    assert.strictEqual(normalized.processingMethod, "threshold");
+    assert.strictEqual(normalized.dither, false);
+}
+
+{
+    const normalized = settings.normalizeSettings({ dither: "true" });
+
+    assert.strictEqual(normalized.processingMethod, "threshold");
+    assert.strictEqual(normalized.dither, false);
+}
+
+{
+    const normalized = settings.normalizeSettings({ processingMethod: "atkinson" });
+
+    assert.strictEqual(normalized.processingMethod, "threshold");
+    assert.strictEqual(normalized.dither, false);
 }
 
 {

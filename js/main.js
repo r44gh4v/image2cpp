@@ -142,7 +142,6 @@ const UI = {
         this.thresholdInput = document.getElementById("setting-threshold");
         this.thresholdVal = document.getElementById("threshold-val");
 
-        this.ditherCheck = document.getElementById("setting-dither");
         this.invertCheck = document.getElementById("setting-invert");
         this.invertBgCheck = document.getElementById("setting-invert-bg");
         this.wrapInvertBg = document.getElementById("wrap-invert-bg");
@@ -280,7 +279,6 @@ const UI = {
             this.canvasWidth,
             this.canvasHeight,
             this.scaleSelect,
-            this.ditherCheck,
             this.invertCheck,
             this.invertBgCheck,
             this.optFormat,
@@ -290,6 +288,9 @@ const UI = {
 
         triggerElements.forEach((element) => {
             element.addEventListener("change", () => {
+                if (AppState.isUpdatingSliders) {
+                    return;
+                }
                 App.requestPreviewCycle(PREVIEW_TIMING.fast);
             });
         });
@@ -298,7 +299,13 @@ const UI = {
             this.wrapInvertBg.classList.toggle("is-hidden", !this.invertCheck.checked);
         };
 
-        this.invertCheck.addEventListener("change", syncInvertBgVisibility);
+        this.invertCheck.addEventListener("change", () => {
+            if (!AppState.isUpdatingSliders && this.invertCheck.checked) {
+                this.invertBgCheck.checked = false;
+            }
+
+            syncInvertBgVisibility();
+        });
         syncInvertBgVisibility();
 
         const doLiveSlider = () => {
@@ -523,7 +530,6 @@ const App = {
         return {
             contrast: UI.contrastInput.value,
             threshold: UI.thresholdInput.value,
-            dither: UI.ditherCheck.checked,
             invert: UI.invertCheck.checked,
             invertBg: UI.invertBgCheck.checked,
         };
@@ -536,7 +542,7 @@ const App = {
             scale: UI.scaleSelect.value,
             contrast: UI.contrastInput.value,
             threshold: UI.thresholdInput.value,
-            dither: UI.ditherCheck.checked,
+            processingMethod: "threshold",
             invert: UI.invertCheck.checked,
             invertBg: UI.invertBgCheck.checked,
             flipH: AppState.tFlipH,
@@ -556,7 +562,8 @@ const App = {
                 scale: UI.scaleSelect.value,
                 contrast: parseInt(UI.contrastInput.value, 10),
                 threshold: parseInt(UI.thresholdInput.value, 10),
-                dither: UI.ditherCheck.checked,
+                processingMethod: "threshold",
+                dither: false,
                 invert: UI.invertCheck.checked,
                 invertBg: UI.invertBgCheck.checked,
                 flipH: AppState.tFlipH,
@@ -599,7 +606,6 @@ const App = {
         UI.contrastVal.textContent = UI.contrastInput.value;
         UI.thresholdInput.value = tuning.threshold !== undefined ? tuning.threshold : 128;
         UI.thresholdVal.textContent = UI.thresholdInput.value;
-        UI.ditherCheck.checked = tuning.dither !== undefined ? tuning.dither : false;
         UI.invertCheck.checked = tuning.invert !== undefined ? tuning.invert : false;
 
         if (tuning.invertBg !== undefined) {

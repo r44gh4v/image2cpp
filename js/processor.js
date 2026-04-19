@@ -21,15 +21,17 @@ function normalizeProcessingSettings(settings) {
     }
 
     const source = settings || {};
+
     return {
         width: Number(source.width) || 128,
         height: Number(source.height) || 64,
         scale: source.scale || "fit",
         contrast: Number.isFinite(Number(source.contrast)) ? Number(source.contrast) : 0,
         threshold: Number.isFinite(Number(source.threshold)) ? Number(source.threshold) : 128,
-        dither: Boolean(source.dither),
+        processingMethod: "threshold",
+        dither: false,
         invert: Boolean(source.invert),
-        invertBg: source.invertBg !== false,
+        invertBg: source.invertBg === true,
         flipH: Boolean(source.flipH),
         flipV: Boolean(source.flipV),
         rotate: Number.isFinite(Number(source.rotate)) ? Number(source.rotate) : 0,
@@ -198,7 +200,6 @@ const Processor = {
         const threshold = safeSettings.threshold;
         const invert = safeSettings.invert;
         const invertBg = safeSettings.invertBg;
-        const dither = safeSettings.dither;
         const contrast = safeSettings.contrast || 0;
 
         // Calculate contrast factor
@@ -227,37 +228,11 @@ const Processor = {
             data[i] = data[i + 1] = data[i + 2] = gray;
         }
 
-        // Pass 2: Dithering or direct thresholding
-        if (dither) {
-            for (let y = 0; y < height; y++) {
-                for (let x = 0; x < width; x++) {
-                    const idx = (y * width + x) * 4;
-                    const oldPixel = data[idx];
-                    const newPixel = oldPixel < threshold ? 0 : 255;
-
-                    data[idx] = data[idx + 1] = data[idx + 2] = newPixel;
-                    const quantError = oldPixel - newPixel;
-
-                    const setErr = (nx, ny, errFactor) => {
-                        if (nx >= 0 && nx < width && ny >= 0 && ny < height) {
-                            const nIdx = (ny * width + nx) * 4;
-                            const newVal = data[nIdx] + quantError * errFactor;
-                            data[nIdx] = data[nIdx + 1] = data[nIdx + 2] = newVal;
-                        }
-                    };
-
-                    setErr(x + 1, y, 7 / 16);
-                    setErr(x - 1, y + 1, 3 / 16);
-                    setErr(x, y + 1, 5 / 16);
-                    setErr(x + 1, y + 1, 1 / 16);
-                }
-            }
-        } else {
-            for (let i = 0; i < data.length; i += 4) {
-                const b = data[i];
-                const whiteOrBlack = b >= threshold ? 255 : 0;
-                data[i] = data[i + 1] = data[i + 2] = whiteOrBlack;
-            }
+        // Pass 2: Clean thresholding (no dithering) for dot-free output.
+        for (let i = 0; i < data.length; i += 4) {
+            const b = data[i];
+            const whiteOrBlack = b >= threshold ? 255 : 0;
+            data[i] = data[i + 1] = data[i + 2] = whiteOrBlack;
         }
 
         // Pass 3: Map to Binary Data (1s and 0s) and colorize for Live Preview

@@ -5,9 +5,10 @@
         scale: "fit",
         contrast: 0,
         threshold: 128,
+        processingMethod: "threshold",
         dither: false,
         invert: false,
-        invertBg: true,
+        invertBg: false,
         flipH: false,
         flipV: false,
         rotate: 0,
@@ -27,6 +28,7 @@
 
     const ALLOWED_VALUES = {
         scale: ["fit", "stretch", "original"],
+        processingMethod: ["threshold"],
         outputFormat: ["arduino", "plain"],
         drawMode: ["vertical", "horizontal"],
         theme: ["oled-white", "oled-blue", "oled-yellow", "lcd-green"],

@@ -14,7 +14,7 @@ const Processor = require("../js/processor.js");
     const result = Processor.applyFiltersAndColorMap(imageData, 2, 2, {
         threshold: "999",
         contrast: "-999",
-        dither: "false",
+        processingMethod: "threshold",
         invert: "true",
         invertBg: "false",
         theme: "unknown-theme",

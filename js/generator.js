@@ -22,15 +22,17 @@ function normalizeGeneratorSettings(settings) {
     }
 
     const source = settings || {};
+
     return {
         width: Number(source.width) || 128,
         height: Number(source.height) || 64,
         scale: source.scale || "fit",
         contrast: Number.isFinite(Number(source.contrast)) ? Number(source.contrast) : 0,
         threshold: Number.isFinite(Number(source.threshold)) ? Number(source.threshold) : 128,
-        dither: Boolean(source.dither),
+        processingMethod: "threshold",
+        dither: false,
         invert: Boolean(source.invert),
-        invertBg: source.invertBg !== false,
+        invertBg: source.invertBg === true,
         flipH: Boolean(source.flipH),
         flipV: Boolean(source.flipV),
         rotate: Number.isFinite(Number(source.rotate)) ? Number(source.rotate) : 0,

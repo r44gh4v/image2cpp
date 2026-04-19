@@ -9,23 +9,34 @@ const frameManager = require("../js/core/frame-manager.js");
     assert.strictEqual(typeof tuning, "object");
     assert.strictEqual(tuning.contrast, 0);
     assert.strictEqual(tuning.threshold, 128);
-    assert.strictEqual(tuning.invertBg, true);
+    assert.strictEqual(tuning.processingMethod, "threshold");
+    assert.strictEqual(tuning.dither, false);
+    assert.strictEqual(tuning.invertBg, false);
 }
 
 {
     const frame = { delay: 5, tuning: { contrast: 20 } };
     frameManager.applyUiTuningToFrame(frame, {
         threshold: "220",
-        dither: true,
+        processingMethod: "atkinson",
         invert: true,
         invertBg: false,
     });
 
     assert.strictEqual(frame.tuning.contrast, 20);
     assert.strictEqual(frame.tuning.threshold, 220);
-    assert.strictEqual(frame.tuning.dither, true);
+    assert.strictEqual(frame.tuning.processingMethod, "threshold");
+    assert.strictEqual(frame.tuning.dither, false);
     assert.strictEqual(frame.tuning.invert, true);
     assert.strictEqual(frame.tuning.invertBg, false);
+}
+
+{
+    const frame = { delay: 5, tuning: {} };
+    frameManager.applyUiTuningToFrame(frame, { dither: true });
+
+    assert.strictEqual(frame.tuning.processingMethod, "threshold");
+    assert.strictEqual(frame.tuning.dither, false);
 }
 
 {

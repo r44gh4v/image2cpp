@@ -7,12 +7,14 @@
         }
 
         const source = rawTuning || {};
+
         return {
             contrast: Number.isFinite(Number(source.contrast)) ? Number(source.contrast) : 0,
             threshold: Number.isFinite(Number(source.threshold)) ? Number(source.threshold) : 128,
-            dither: Boolean(source.dither),
+            processingMethod: "threshold",
+            dither: false,
             invert: Boolean(source.invert),
-            invertBg: source.invertBg !== false,
+            invertBg: source.invertBg === true,
         };
     }
 
@@ -44,7 +46,17 @@
             return null;
         }
 
-        target.tuning = normalizeTuning(Object.assign({}, target.tuning, uiTuning || {}));
+        const incoming = uiTuning || {};
+        const merged = Object.assign({}, target.tuning, incoming);
+
+        if (
+            Object.prototype.hasOwnProperty.call(incoming, "dither")
+            && !Object.prototype.hasOwnProperty.call(incoming, "processingMethod")
+        ) {
+            delete merged.processingMethod;
+        }
+
+        target.tuning = normalizeTuning(merged);
         return target.tuning;
     }
 
