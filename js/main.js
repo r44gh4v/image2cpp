@@ -40,6 +40,7 @@ const PreviewServiceFactory = window.Image2CppPreviewService;
 const GifWorkflowServiceFactory = window.Image2CppGifWorkflowService;
 const CustomSelectController = window.Image2CppCustomSelect;
 const FileWorkflowServiceFactory = window.Image2CppFileWorkflowService;
+const UiThemeServiceFactory = window.Image2CppUiThemeService;
 const ActiveUrlManager = UrlManagerFactory && typeof UrlManagerFactory.create === "function"
     ? UrlManagerFactory.create()
     : null;
@@ -57,6 +58,24 @@ const FileWorkflowService = FileWorkflowServiceFactory && typeof FileWorkflowSer
         revokeObjectUrl: revokeManagedObjectUrl,
     })
     : null;
+const UiThemeService = UiThemeServiceFactory && typeof UiThemeServiceFactory.create === "function"
+    ? UiThemeServiceFactory.create({
+        storageKey: "image2cpp.uiThemeMode",
+        attributeName: "data-app-theme",
+        defaultMode: "system",
+        modeSequence: ["system", "light", "dark"],
+    })
+    : null;
+
+const APP_THEME_MODE_LABELS = {
+    system: "System",
+    light: "Light",
+    dark: "Dark",
+};
+
+function getAppThemeModeLabel(mode) {
+    return APP_THEME_MODE_LABELS[mode] || APP_THEME_MODE_LABELS.dark;
+}
 
 function setAppStateValue(key, value) {
     if (AppStateStore) {
@@ -150,6 +169,7 @@ const UI = {
         this.optDrawMode = document.getElementById("draw-mode");
         this.optVarName = document.getElementById("var-name");
         this.previewTheme = document.getElementById("preview-theme");
+        this.appThemeToggle = document.getElementById("app-theme-toggle");
 
         this.previewCanvas = document.getElementById("preview-canvas");
         this.previewInfo = document.getElementById("preview-info");
@@ -382,6 +402,34 @@ const UI = {
                 revokeManagedObjectUrl(downloadUrl);
             }, 0);
         });
+
+        if (this.appThemeToggle && UiThemeService && typeof UiThemeService.cycleMode === "function") {
+            this.appThemeToggle.addEventListener("click", () => {
+                const snapshot = UiThemeService.cycleMode();
+                this.syncThemeToggle(snapshot);
+            });
+        }
+    },
+
+    syncThemeToggle(snapshot) {
+        if (!this.appThemeToggle) {
+            return;
+        }
+
+        const safeSnapshot = snapshot || {
+            mode: "dark",
+            resolvedTheme: "dark",
+        };
+        const mode = safeSnapshot.mode || "dark";
+        const resolvedTheme = safeSnapshot.resolvedTheme || mode;
+        const modeLabel = getAppThemeModeLabel(mode);
+        const buttonText = `Theme: ${modeLabel}`;
+
+        this.appThemeToggle.textContent = buttonText;
+        this.appThemeToggle.dataset.themeMode = mode;
+        this.appThemeToggle.dataset.themeResolved = resolvedTheme;
+        this.appThemeToggle.title = `${buttonText} (${resolvedTheme})`;
+        this.appThemeToggle.setAttribute("aria-label", `App theme mode: ${modeLabel} (${resolvedTheme})`);
     },
 };
 
@@ -426,9 +474,23 @@ const App = {
     },
 
     init() {
+        let initialThemeSnapshot = null;
+        if (UiThemeService && typeof UiThemeService.init === "function") {
+            initialThemeSnapshot = UiThemeService.init();
+        }
+
         UI.init();
         if (CustomSelectController && typeof CustomSelectController.init === "function") {
             CustomSelectController.init();
+        }
+
+        if (UiThemeService && typeof UiThemeService.subscribe === "function") {
+            UiThemeService.subscribe((snapshot) => {
+                UI.syncThemeToggle(snapshot);
+            });
+            UI.syncThemeToggle(initialThemeSnapshot || UiThemeService.getSnapshot());
+        } else {
+            UI.syncThemeToggle();
         }
 
         if (ActiveUrlManager) {

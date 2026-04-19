@@ -19,6 +19,7 @@ const html = readText(indexPath);
 const css = readText(cssPath);
 
 const requiredIds = [
+    "app-theme-toggle",
     "drop-zone",
     "file-input",
     "canvas-width",
@@ -53,6 +54,7 @@ const requiredScriptsInOrder = [
     "js/core/frame-manager.js",
     "js/core/url-manager.js",
     "js/core/state-store.js",
+    "js/core/ui-theme-service.js",
     "js/core/preview-service.js",
     "js/core/gif-workflow-service.js",
     "js/core/file-workflow-service.js",
