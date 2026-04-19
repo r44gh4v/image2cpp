@@ -194,6 +194,9 @@ body {
 .app-header {
     background: transparent;
     border-bottom: none;
+    width: 100%;
+    max-width: 1600px;
+    margin: 0 auto;
     padding: var(--screen-edge-gap) var(--layout-inline-pad) 0;
     min-height: var(--app-header-height);
     flex-shrink: 0;
@@ -203,8 +206,7 @@ body {
 }
 
 .header-inner {
-    max-width: 1600px;
-    margin: 0 auto;
+    width: 100%;
     display: flex;
     align-items: center;
     gap: 0.8rem;
@@ -306,7 +308,8 @@ body {
 }
 
 .panel-result {
-    overflow-y: visible;
+    overflow-y: auto;
+    overflow-x: visible;
 }
 
 .card {
@@ -870,10 +873,15 @@ input[type="range"]:active::-webkit-slider-runnable-track {
 
 .thumb-label {
     position: absolute;
+    top: 2px;
     right: 2px;
-    bottom: 2px;
-    padding: 2px 4px;
+    width: 14px;
+    height: 14px;
+    padding: 0;
     border-radius: 2px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
     line-height: 1;
     font-family: var(--font-code);
     font-size: 10px;
@@ -884,10 +892,13 @@ input[type="range"]:active::-webkit-slider-runnable-track {
 }
 
 .thumb-label.play-icon {
-    padding: 2px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
+    width: 14px;
+    height: 14px;
+}
+
+.thumb-label svg {
+    width: 10px;
+    height: 10px;
 }
 
 .code-area {
@@ -1226,6 +1237,8 @@ input[type="radio"],
         grid-row: 1 / span 2;
         position: sticky;
         top: calc(var(--app-header-height) + var(--screen-edge-gap));
+        overflow-y: auto;
+        overflow-x: visible;
         height: calc(100vh - var(--app-header-height) - (var(--screen-edge-gap) * 2));
         max-height: calc(100vh - var(--app-header-height) - (var(--screen-edge-gap) * 2));
         height: calc(100dvh - var(--app-header-height) - (var(--screen-edge-gap) * 2));
@@ -1264,6 +1277,8 @@ input[type="radio"],
         position: sticky;
         top: calc(var(--app-header-height) + var(--screen-edge-gap));
         z-index: 10;
+        overflow-y: auto;
+        overflow-x: visible;
         height: min(60vh, calc(100vh - var(--app-header-height) - (var(--screen-edge-gap) * 2)));
         height: min(60dvh, calc(100dvh - var(--app-header-height) - (var(--screen-edge-gap) * 2)));
         min-height: 320px;

@@ -27,6 +27,36 @@ const Processor = require("../js/processor.js");
 }
 
 {
+    const makeImageData = () => ({
+        data: new Uint8ClampedArray([
+            0, 0, 0, 255,
+            255, 255, 255, 0,
+        ]),
+    });
+
+    const normal = Processor.applyFiltersAndColorMap(makeImageData(), 2, 1, {
+        threshold: 128,
+        contrast: 0,
+        processingMethod: "threshold",
+        invert: false,
+        invertBg: false,
+        theme: "oled-white",
+    });
+
+    const invertedBgOnly = Processor.applyFiltersAndColorMap(makeImageData(), 2, 1, {
+        threshold: 128,
+        contrast: 0,
+        processingMethod: "threshold",
+        invert: false,
+        invertBg: true,
+        theme: "oled-white",
+    });
+
+    assert.deepStrictEqual(Array.from(normal.binaryData), [1, 0]);
+    assert.deepStrictEqual(Array.from(invertedBgOnly.binaryData), [1, 1]);
+}
+
+{
     const originalSourceImage = Processor.sourceImage;
     try {
         Processor.sourceImage = { width: 2, height: 2 };

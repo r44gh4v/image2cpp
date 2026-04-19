@@ -256,16 +256,13 @@ const Processor = {
             // Re-check alpha originally carried forward via bit 3
             let isPadding = data[i + 3] < 128;
 
-            // If invert is true, flip the drawn pixel logic.
             let bit = isBlack ? 1 : 0;
-            
-            if (invert) {
-                if (isPadding && !invertBg) {
-                    // Do not invert the background padding if toggle is disabled
-                    bit = 0; 
-                } else {
-                    bit = bit === 1 ? 0 : 1;
-                }
+
+            // Invert controls image pixels; invertBg controls transparent/padding pixels.
+            // This keeps both toggles independent while still allowing them to be combined.
+            const shouldInvertPixel = isPadding ? invertBg : invert;
+            if (shouldInvertPixel) {
+                bit = bit === 1 ? 0 : 1;
             }
 
             if (shouldBuildBinary) {

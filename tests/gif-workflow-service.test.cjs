@@ -164,7 +164,7 @@ const service = gifWorkflowFactory.create({ frameTuningManager: frameManager });
     assert.strictEqual(renderCalls.length, 1);
     assert.strictEqual(renderCalls[0].source.id, "f0");
     assert.deepStrictEqual(activeCalls, [0]);
-    assert.strictEqual(appState.currentFrame, 1);
+    assert.strictEqual(appState.currentFrame, 0);
     assert.strictEqual(appState.gifTimer, 99);
     assert.strictEqual(scheduled.length, 1);
     assert.strictEqual(scheduled[0].delay, 50);
@@ -209,8 +209,7 @@ const service = gifWorkflowFactory.create({ frameTuningManager: frameManager });
         },
     });
 
-    assert.strictEqual(scheduled.length, 1);
-    assert.strictEqual(scheduled[0].delay, 100);
-    assert.strictEqual(appState.gifTimer, 77);
+    assert.strictEqual(scheduled.length, 0);
+    assert.strictEqual(appState.gifTimer, null);
     assert.ok(previewInfo.textContent.includes("(Paused)"));
 }

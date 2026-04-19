@@ -163,7 +163,10 @@ const UI = {
 
         this.invertCheck = document.getElementById("setting-invert");
         this.invertBgCheck = document.getElementById("setting-invert-bg");
-        this.wrapInvertBg = document.getElementById("wrap-invert-bg");
+
+        // Always start with both inversion toggles disabled.
+        this.invertCheck.checked = false;
+        this.invertBgCheck.checked = false;
 
         this.optFormat = document.getElementById("output-format");
         this.optDrawMode = document.getElementById("draw-mode");
@@ -314,19 +317,6 @@ const UI = {
                 App.requestPreviewCycle(PREVIEW_TIMING.fast);
             });
         });
-
-        const syncInvertBgVisibility = () => {
-            this.wrapInvertBg.classList.toggle("is-hidden", !this.invertCheck.checked);
-        };
-
-        this.invertCheck.addEventListener("change", () => {
-            if (!AppState.isUpdatingSliders && this.invertCheck.checked) {
-                this.invertBgCheck.checked = false;
-            }
-
-            syncInvertBgVisibility();
-        });
-        syncInvertBgVisibility();
 
         const doLiveSlider = () => {
             App.requestPreviewCycle(PREVIEW_TIMING.slider);
@@ -669,12 +659,7 @@ const App = {
         UI.thresholdInput.value = tuning.threshold !== undefined ? tuning.threshold : 128;
         UI.thresholdVal.textContent = UI.thresholdInput.value;
         UI.invertCheck.checked = tuning.invert !== undefined ? tuning.invert : false;
-
-        if (tuning.invertBg !== undefined) {
-            UI.invertBgCheck.checked = tuning.invertBg;
-        }
-
-        UI.wrapInvertBg.classList.toggle("is-hidden", !UI.invertCheck.checked);
+        UI.invertBgCheck.checked = tuning.invertBg !== undefined ? tuning.invertBg : false;
 
         setAppStateValue("isUpdatingSliders", false);
     },
@@ -795,38 +780,55 @@ const App = {
             setAppStateValue("gifTimer", null);
         }
 
-        const renderNextFrame = () => {
+        const normalizeFrameIndex = (index, length) => {
+            if (!Number.isInteger(index) || length <= 0) {
+                return 0;
+            }
+
+            return ((index % length) + length) % length;
+        };
+
+        const renderNextFrame = (requestedIndex) => {
             if (!Processor.sourceIsGif) {
                 return;
             }
 
+            const frameCount = Processor.gifFrames.length;
+            if (frameCount === 0) {
+                setAppStateValue("gifTimer", null);
+                return;
+            }
+
             if (!AppState.isPaused) {
-                const frame = Processor.gifFrames[AppState.currentFrame];
-                const settings = this.getSettings(AppState.currentFrame);
+                const frameIndex = normalizeFrameIndex(requestedIndex, frameCount);
+                const frame = Processor.gifFrames[frameIndex];
+                setAppStateValue("currentFrame", frameIndex);
+
+                const settings = this.getSettings(frameIndex);
 
                 this.renderToCanvas(UI.previewCanvas, frame.imgData, settings, PREVIEW_RENDER_OPTIONS);
-                UI.previewInfo.textContent = `${settings.width} × ${settings.height} | GIF: ${AppState.currentFrame + 1}/${Processor.gifFrames.length} fr`;
+                UI.previewInfo.textContent = `${settings.width} × ${settings.height} | GIF: ${frameIndex + 1}/${frameCount} fr`;
 
                 this.setActiveTimelineEntry(0);
-
-                setAppStateValue(
-                    "currentFrame",
-                    (AppState.currentFrame + 1) % Processor.gifFrames.length,
-                );
 
                 let delay = frame.delay * 10 || 100;
                 if (delay < 20) {
                     delay = 100;
                 }
-                setAppStateValue("gifTimer", setTimeout(renderNextFrame, delay));
+
+                const nextFrame = (frameIndex + 1) % frameCount;
+                setAppStateValue("gifTimer", setTimeout(() => {
+                    renderNextFrame(nextFrame);
+                }, delay));
             } else {
-                const settings = this.getSettings();
-                UI.previewInfo.textContent = `${settings.width} × ${settings.height} | GIF: ${AppState.currentFrame + 1}/${Processor.gifFrames.length} fr (Paused)`;
-                setAppStateValue("gifTimer", setTimeout(renderNextFrame, 100));
+                const frameIndex = normalizeFrameIndex(AppState.currentFrame, frameCount);
+                const settings = this.getSettings(frameIndex);
+                UI.previewInfo.textContent = `${settings.width} × ${settings.height} | GIF: ${frameIndex + 1}/${frameCount} fr (Paused)`;
+                setAppStateValue("gifTimer", null);
             }
         };
 
-        renderNextFrame();
+        renderNextFrame(AppState.currentFrame);
     },
 
     updatePreview(isLive = false) {

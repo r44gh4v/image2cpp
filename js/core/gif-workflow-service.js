@@ -240,36 +240,50 @@
                 }
             }
 
-            const renderNextFrame = () => {
+            function normalizeFrameIndex(index, length) {
+                if (!Number.isInteger(index) || length <= 0) {
+                    return 0;
+                }
+
+                return ((index % length) + length) % length;
+            }
+
+            const renderNextFrame = (requestedIndex) => {
                 if (!processor.sourceIsGif) {
                     return;
                 }
 
                 const frames = Array.isArray(processor.gifFrames) ? processor.gifFrames : [];
                 if (frames.length === 0) {
+                    if (typeof setStateValue === "function") {
+                        setStateValue("gifTimer", null);
+                    } else {
+                        appState.gifTimer = null;
+                    }
                     return;
                 }
 
                 if (!appState.isPaused) {
-                    const frame = frames[appState.currentFrame];
-                    const settings = getSettings(appState.currentFrame);
+                    const frameIndex = normalizeFrameIndex(requestedIndex, frames.length);
+                    const frame = frames[frameIndex];
+
+                    if (typeof setStateValue === "function") {
+                        setStateValue("currentFrame", frameIndex);
+                    } else {
+                        appState.currentFrame = frameIndex;
+                    }
+
+                    const settings = getSettings(frameIndex);
 
                     const renderStart = nowFn();
                     renderToCanvas(previewCanvas, frame.imgData, settings);
                     const renderDuration = nowFn() - renderStart;
                     if (previewInfo) {
-                        previewInfo.textContent = `${settings.width} × ${settings.height} | GIF: ${appState.currentFrame + 1}/${frames.length} fr`;
+                        previewInfo.textContent = `${settings.width} × ${settings.height} | GIF: ${frameIndex + 1}/${frames.length} fr`;
                     }
 
                     if (typeof setActiveTimelineEntry === "function") {
                         setActiveTimelineEntry(0);
-                    }
-
-                    const nextFrame = (appState.currentFrame + 1) % frames.length;
-                    if (typeof setStateValue === "function") {
-                        setStateValue("currentFrame", nextFrame);
-                    } else {
-                        appState.currentFrame = nextFrame;
                     }
 
                     let delay = frame.delay * 10 || 100;
@@ -281,28 +295,31 @@
                         delay = MIN_FRAME_DELAY_MS;
                     }
 
-                    const timerId = scheduleFn(renderNextFrame, delay);
+                    const nextFrame = (frameIndex + 1) % frames.length;
+
+                    const timerId = scheduleFn(() => {
+                        renderNextFrame(nextFrame);
+                    }, delay);
                     if (typeof setStateValue === "function") {
                         setStateValue("gifTimer", timerId);
                     } else {
                         appState.gifTimer = timerId;
                     }
                 } else {
-                    const settings = getSettings();
+                    const frameIndex = normalizeFrameIndex(appState.currentFrame, frames.length);
+                    const settings = getSettings(frameIndex);
                     if (previewInfo) {
-                        previewInfo.textContent = `${settings.width} × ${settings.height} | GIF: ${appState.currentFrame + 1}/${frames.length} fr (Paused)`;
+                        previewInfo.textContent = `${settings.width} × ${settings.height} | GIF: ${frameIndex + 1}/${frames.length} fr (Paused)`;
                     }
-
-                    const timerId = scheduleFn(renderNextFrame, 100);
                     if (typeof setStateValue === "function") {
-                        setStateValue("gifTimer", timerId);
+                        setStateValue("gifTimer", null);
                     } else {
-                        appState.gifTimer = timerId;
+                        appState.gifTimer = null;
                     }
                 }
             };
 
-            renderNextFrame();
+            renderNextFrame(appState.currentFrame);
         }
 
         return {
