@@ -1,0 +1,12 @@
+{
+  "name": "image2cpp",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Image and GIF to C++ byte array converter",
+  "scripts": {
+    "check:syntax": "node scripts/check-syntax.cjs",
+    "check:ui-smoke": "node scripts/smoke-ui-static.cjs",
+    "test:contracts": "node scripts/run-tests.cjs",
+    "check": "npm run check:syntax && npm run check:ui-smoke && npm run test:contracts"
+  }
+}

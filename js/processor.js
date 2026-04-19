@@ -1,8 +1,77 @@
+function resolveSettingsContract() {
+    if (typeof globalThis !== "undefined" && globalThis.Image2CppSettings) {
+        return globalThis.Image2CppSettings;
+    }
+
+    if (typeof module !== "undefined" && module.exports && typeof require === "function") {
+        try {
+            return require("./core/settings.js");
+        } catch (error) {
+            return null;
+        }
+    }
+
+    return null;
+}
+
+function normalizeProcessingSettings(settings) {
+    const contract = resolveSettingsContract();
+    if (contract && typeof contract.normalizeSettings === "function") {
+        return contract.normalizeSettings(settings || {});
+    }
+
+    const source = settings || {};
+    return {
+        width: Number(source.width) || 128,
+        height: Number(source.height) || 64,
+        scale: source.scale || "fit",
+        contrast: Number.isFinite(Number(source.contrast)) ? Number(source.contrast) : 0,
+        threshold: Number.isFinite(Number(source.threshold)) ? Number(source.threshold) : 128,
+        dither: Boolean(source.dither),
+        invert: Boolean(source.invert),
+        invertBg: source.invertBg !== false,
+        flipH: Boolean(source.flipH),
+        flipV: Boolean(source.flipV),
+        rotate: Number.isFinite(Number(source.rotate)) ? Number(source.rotate) : 0,
+        outputFormat: source.outputFormat || "arduino",
+        drawMode: source.drawMode || "vertical",
+        varName: source.varName || "bitmap",
+        theme: source.theme || "oled-white",
+    };
+}
+
 // core image manipulation using canvas API
 const Processor = {
     sourceImage: null,
     sourceIsGif: false,
     gifFrames: [],
+    _scratchCanvas: null,
+    _scratchCtx: null,
+
+    ensureScratchCanvas(width, height) {
+        if (typeof document === "undefined" || typeof document.createElement !== "function") {
+            return null;
+        }
+
+        if (!this._scratchCanvas) {
+            this._scratchCanvas = document.createElement("canvas");
+            this._scratchCtx = this._scratchCanvas.getContext("2d", { willReadFrequently: true });
+        }
+
+        if (!this._scratchCtx) {
+            return null;
+        }
+
+        if (this._scratchCanvas.width !== width) {
+            this._scratchCanvas.width = width;
+        }
+
+        if (this._scratchCanvas.height !== height) {
+            this._scratchCanvas.height = height;
+        }
+
+        return this._scratchCanvas;
+    },
 
     loadImage(src, callback) {
         const img = new Image();
@@ -54,14 +123,17 @@ const Processor = {
         if (callback) callback();
     },
 
-    processFrame(canvas, sourceImgOrData, settings) {
+    processFrame(canvas, sourceImgOrData, settings, options) {
+        const safeSettings = normalizeProcessingSettings(settings);
+        const renderOptions = options || {};
+
         const ctx = canvas.getContext('2d', { willReadFrequently: true });
         ctx.clearRect(0, 0, canvas.width, canvas.height);
 
         ctx.save();
         ctx.translate(canvas.width / 2, canvas.height / 2);
-        if (settings.rotate) ctx.rotate(settings.rotate * Math.PI / 180);
-        ctx.scale(settings.flipH ? -1 : 1, settings.flipV ? -1 : 1);
+        if (safeSettings.rotate) ctx.rotate(safeSettings.rotate * Math.PI / 180);
+        ctx.scale(safeSettings.flipH ? -1 : 1, safeSettings.flipV ? -1 : 1);
 
         let sw = this.sourceImage.width;
         let sh = this.sourceImage.height;
@@ -69,15 +141,15 @@ const Processor = {
 
         let targetW = canvas.width;
         let targetH = canvas.height;
-        if (settings.rotate && settings.rotate % 180 !== 0) {
+        if (safeSettings.rotate && safeSettings.rotate % 180 !== 0) {
             targetW = canvas.height;
             targetH = canvas.width;
         }
 
-        if (settings.scale === 'stretch') {
+        if (safeSettings.scale === 'stretch') {
             dw = targetW; dh = targetH;
             dx = -dw / 2; dy = -dh / 2;
-        } else if (settings.scale === 'fit') {
+        } else if (safeSettings.scale === 'fit') {
             const ratio = Math.min(targetW / sw, targetH / sh);
             dw = sw * ratio; dh = sh * ratio;
             dx = -dw / 2; dy = -dh / 2;
@@ -86,18 +158,29 @@ const Processor = {
             dx = -dw / 2; dy = -dh / 2;
         }
 
-        if (sourceImgOrData instanceof ImageData) {
-            const tempCnv = document.createElement('canvas');
-            tempCnv.width = sw; tempCnv.height = sh;
-            tempCnv.getContext('2d').putImageData(sourceImgOrData, 0, 0);
-            ctx.drawImage(tempCnv, dx, dy, dw, dh);
+        const hasImageDataCtor = typeof ImageData !== 'undefined';
+        if (hasImageDataCtor && sourceImgOrData instanceof ImageData) {
+            const scratchCanvas = this.ensureScratchCanvas(sw, sh);
+            if (scratchCanvas && this._scratchCtx) {
+                this._scratchCtx.putImageData(sourceImgOrData, 0, 0);
+                ctx.drawImage(scratchCanvas, dx, dy, dw, dh);
+            } else {
+                ctx.drawImage(sourceImgOrData, dx, dy, dw, dh);
+            }
         } else {
             ctx.drawImage(sourceImgOrData, dx, dy, dw, dh);
         }
         ctx.restore();
 
         const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-        const result = this.applyFiltersAndColorMap(imageData, canvas.width, canvas.height, settings);
+        const result = this.applyFiltersAndColorMap(
+            imageData,
+            canvas.width,
+            canvas.height,
+            safeSettings,
+            true,
+            renderOptions.skipBinary === true,
+        );
         
         // Push the colorized pixels back for the Visual Preview
         ctx.putImageData(result.imageData, 0, 0);
@@ -105,13 +188,18 @@ const Processor = {
         return result;
     },
 
-    applyFiltersAndColorMap(imageData, width, height, settings) {
+    applyFiltersAndColorMap(imageData, width, height, settings, isNormalized, skipBinary) {
+        const safeSettings = isNormalized === true
+            ? settings
+            : normalizeProcessingSettings(settings);
+        const shouldBuildBinary = skipBinary !== true;
+
         const data = imageData.data;
-        const threshold = settings.threshold;
-        const invert = settings.invert;
-        const invertBg = settings.invertBg;
-        const dither = settings.dither;
-        const contrast = settings.contrast || 0;
+        const threshold = safeSettings.threshold;
+        const invert = safeSettings.invert;
+        const invertBg = safeSettings.invertBg;
+        const dither = safeSettings.dither;
+        const contrast = safeSettings.contrast || 0;
 
         // Calculate contrast factor
         const factor = (259 * (contrast + 255)) / (255 * (259 - contrast));
@@ -173,14 +261,16 @@ const Processor = {
         }
 
         // Pass 3: Map to Binary Data (1s and 0s) and colorize for Live Preview
-        const binaryData = new Uint8Array(width * height);
+        const binaryData = shouldBuildBinary
+            ? new Uint8Array(width * height)
+            : null;
 
         let fgColor = [255, 255, 255]; // standard OLED white
         let bgColor = [0, 0, 0];       // standard black background
 
-        if (settings.theme === 'oled-blue') fgColor = [0, 50, 255];
-        if (settings.theme === 'oled-yellow') fgColor = [255, 215, 0];
-        if (settings.theme === 'lcd-green') { fgColor = [0, 0, 0]; bgColor = [135, 175, 50]; }
+        if (safeSettings.theme === 'oled-blue') fgColor = [0, 50, 255];
+        if (safeSettings.theme === 'oled-yellow') fgColor = [255, 215, 0];
+        if (safeSettings.theme === 'lcd-green') { fgColor = [0, 0, 0]; bgColor = [135, 175, 50]; }
 
         for (let i = 0; i < data.length; i += 4) {
             let pIdx = i / 4;
@@ -203,7 +293,9 @@ const Processor = {
                 }
             }
 
-            binaryData[pIdx] = bit;
+            if (shouldBuildBinary) {
+                binaryData[pIdx] = bit;
+            }
 
             // Paint visual preview:
             // the `bit === 1` means this pixel is "drawn/active" (so use fgColor)
@@ -214,3 +306,11 @@ const Processor = {
         return { imageData, binaryData };
     }
 };
+
+if (typeof module !== "undefined" && module.exports) {
+    module.exports = Processor;
+}
+
+if (typeof globalThis !== "undefined") {
+    globalThis.Processor = Processor;
+}

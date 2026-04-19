@@ -4,7 +4,6 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>image2cpp - Image & GIF to C++ Array</title>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
@@ -26,11 +25,11 @@
                     <h2>1. Input Source</h2>
                 </div>
                 <div class="drop-zone" id="drop-zone">
-                    <svg width="24" height="24" style="margin: 0 auto; color: var(--text-muted);" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
+                    <svg class="drop-icon" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
                     <span class="drop-text">Drop file or Browse</span>
                     <span class="drop-hint">GIF, PNG, JPEG, WEBP</span>
                 </div>
-                <input type="file" id="file-input" style="display: none;" accept="image/png, image/jpeg, image/gif, image/webp">
+                <input type="file" id="file-input" class="is-hidden" accept="image/png, image/jpeg, image/gif, image/webp">
             </div>
 
             <div class="card">
@@ -95,7 +94,7 @@
                 <div class="checkbox-row mt-3">
                     <label class="cb-wrap"><input type="checkbox" id="setting-dither"><span class="cb"></span> Dithering</label>
                     <label class="cb-wrap"><input type="checkbox" id="setting-invert"><span class="cb"></span> Invert</label>
-                    <label class="cb-wrap" id="wrap-invert-bg" style="display: none;"><input type="checkbox" id="setting-invert-bg" checked><span class="cb"></span> Invert BG</label>
+                    <label class="cb-wrap is-hidden" id="wrap-invert-bg"><input type="checkbox" id="setting-invert-bg" checked><span class="cb"></span> Invert BG</label>
                 </div>
                 <div class="setting-group mt-3">
                     <label>Transformations</label>
@@ -149,7 +148,7 @@
                     <canvas id="preview-canvas" width="128" height="64"></canvas>
                 </div>
                 
-                <div class="gif-frames-timeline" id="gif-frames" style="display: none;"></div>
+                <div class="gif-frames-timeline is-hidden" id="gif-frames"></div>
 
                 <div class="code-area">
                     <div class="code-toolbar">
@@ -168,6 +167,15 @@
     <script src="js/vendor/omggif.js"></script>
     <script src="js/processor.js"></script>
     <script src="js/generator.js"></script>
+    <script src="js/core/constants.js"></script>
+    <script src="js/core/settings.js"></script>
+    <script src="js/core/frame-manager.js"></script>
+    <script src="js/core/url-manager.js"></script>
+    <script src="js/core/state-store.js"></script>
+    <script src="js/core/preview-service.js"></script>
+    <script src="js/core/gif-workflow-service.js"></script>
+    <script src="js/core/file-workflow-service.js"></script>
+    <script src="js/ui/custom-select-controller.js"></script>
     <script src="js/main.js"></script>
 </body>
 </html>

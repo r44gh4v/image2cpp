@@ -1,10 +1,9 @@
-
 /**
  * Image2Cpp Main Controller
- * Follows modular initialization and separated state management.
+ * Consolidated and state-driven UI logic.
  */
 
-const AppState = {
+const INITIAL_APP_STATE = {
     gifTimer: null,
     currentFrame: 0,
     isPaused: false,
@@ -17,10 +16,89 @@ const AppState = {
     isUpdatingSliders: false,
 };
 
+const PREVIEW_RENDER_OPTIONS = { skipBinary: true };
+
+const AppStateStoreFactory = window.Image2CppStateStore;
+const AppStateStore = AppStateStoreFactory && typeof AppStateStoreFactory.create === "function"
+    ? AppStateStoreFactory.create(INITIAL_APP_STATE)
+    : null;
+const AppState = AppStateStore ? AppStateStore.state : Object.assign({}, INITIAL_APP_STATE);
+
+const SettingsContract = window.Image2CppSettings;
+const FrameTuningManager = window.Image2CppFrameManager;
+const UrlManagerFactory = window.Image2CppUrlManager;
+const PreviewServiceFactory = window.Image2CppPreviewService;
+const GifWorkflowServiceFactory = window.Image2CppGifWorkflowService;
+const CustomSelectController = window.Image2CppCustomSelect;
+const FileWorkflowServiceFactory = window.Image2CppFileWorkflowService;
+const ActiveUrlManager = UrlManagerFactory && typeof UrlManagerFactory.create === "function"
+    ? UrlManagerFactory.create()
+    : null;
+const PreviewService = PreviewServiceFactory && typeof PreviewServiceFactory.create === "function"
+    ? PreviewServiceFactory.create({ processor: Processor })
+    : null;
+const GifWorkflowService = GifWorkflowServiceFactory && typeof GifWorkflowServiceFactory.create === "function"
+    ? GifWorkflowServiceFactory.create({ frameTuningManager: FrameTuningManager })
+    : null;
+const FileWorkflowService = FileWorkflowServiceFactory && typeof FileWorkflowServiceFactory.create === "function"
+    ? FileWorkflowServiceFactory.create({
+        processor: Processor,
+        settingsContract: SettingsContract,
+        createObjectUrl: createManagedObjectUrl,
+        revokeObjectUrl: revokeManagedObjectUrl,
+    })
+    : null;
+
+function setAppStateValue(key, value) {
+    if (AppStateStore) {
+        AppStateStore.set(key, value);
+        return;
+    }
+
+    AppState[key] = value;
+}
+
+function patchAppStateValues(partial) {
+    if (!partial || typeof partial !== "object") {
+        return;
+    }
+
+    if (AppStateStore) {
+        AppStateStore.patch(partial);
+        return;
+    }
+
+    Object.assign(AppState, partial);
+}
+
+function createManagedObjectUrl(blob) {
+    if (!blob) {
+        return null;
+    }
+
+    if (ActiveUrlManager) {
+        return ActiveUrlManager.create(blob);
+    }
+
+    return URL.createObjectURL(blob);
+}
+
+function revokeManagedObjectUrl(url) {
+    if (!url) {
+        return;
+    }
+
+    if (ActiveUrlManager) {
+        ActiveUrlManager.revoke(url);
+        return;
+    }
+
+    URL.revokeObjectURL(url);
+}
+
 const UI = {
     init() {
-        initCustomSelects();
-        initCustomSelects();
+        this.appHeader = document.querySelector(".app-header");
         this.dropZone = document.getElementById("drop-zone");
         this.fileInput = document.getElementById("file-input");
         this.canvasWidth = document.getElementById("canvas-width");
@@ -36,33 +114,52 @@ const UI = {
         this.ditherCheck = document.getElementById("setting-dither");
         this.invertCheck = document.getElementById("setting-invert");
         this.invertBgCheck = document.getElementById("setting-invert-bg");
+        this.wrapInvertBg = document.getElementById("wrap-invert-bg");
+
         this.optFormat = document.getElementById("output-format");
         this.optDrawMode = document.getElementById("draw-mode");
         this.optVarName = document.getElementById("var-name");
         this.previewTheme = document.getElementById("preview-theme");
-        
+
         this.previewCanvas = document.getElementById("preview-canvas");
         this.previewInfo = document.getElementById("preview-info");
         this.codeOutput = document.getElementById("code-output");
         this.timeline = document.getElementById("gif-frames");
-        
+
         this.btnCopy = document.getElementById("btn-copy");
         this.btnDownload = document.getElementById("btn-download");
-        
+
         this.btnFlipH = document.getElementById("btn-flip-h");
         this.btnFlipV = document.getElementById("btn-flip-v");
         this.btnRotate = document.getElementById("btn-rotate");
         this.presetBtns = document.querySelectorAll(".preset-btn");
-        
+
+        this.syncLayoutMetrics = this.syncLayoutMetrics.bind(this);
+        this.syncLayoutMetrics();
+
+        if (document.fonts && document.fonts.ready) {
+            document.fonts.ready.then(this.syncLayoutMetrics).catch(() => {});
+        }
+
+        window.addEventListener("resize", this.syncLayoutMetrics, { passive: true });
+
         this.bindEvents();
     },
 
+    syncLayoutMetrics() {
+        if (!this.appHeader) {
+            return;
+        }
+
+        const headerHeight = Math.ceil(this.appHeader.getBoundingClientRect().height);
+        document.documentElement.style.setProperty("--app-header-height", `${headerHeight}px`);
+    },
+
     bindEvents() {
-        // Horizontal scroll for gif frames timeline using vertical wheel
-        this.timeline.addEventListener('wheel', (e) => {
-            if (e.deltaY !== 0) {
-                e.preventDefault();
-                this.timeline.scrollLeft += e.deltaY;
+        this.timeline.addEventListener("wheel", (event) => {
+            if (event.deltaY !== 0) {
+                event.preventDefault();
+                this.timeline.scrollLeft += event.deltaY;
             }
         });
 
@@ -71,573 +168,696 @@ const UI = {
             setTimeout(() => App.updatePreview(false), 50);
         };
 
-        // Transforms
-        this.btnFlipH.addEventListener("click", () => { AppState.tFlipH = !AppState.tFlipH; doFastUpdate(); });
-        this.btnFlipV.addEventListener("click", () => { AppState.tFlipV = !AppState.tFlipV; doFastUpdate(); });
-        this.btnRotate.addEventListener("click", () => { AppState.tRotate = (AppState.tRotate + 90) % 360; doFastUpdate(); });
+        this.btnFlipH.addEventListener("click", () => {
+            setAppStateValue("tFlipH", !AppState.tFlipH);
+            doFastUpdate();
+        });
 
-        // Pause toggle
+        this.btnFlipV.addEventListener("click", () => {
+            setAppStateValue("tFlipV", !AppState.tFlipV);
+            doFastUpdate();
+        });
+
+        this.btnRotate.addEventListener("click", () => {
+            setAppStateValue("tRotate", (AppState.tRotate + 90) % 360);
+            doFastUpdate();
+        });
+
         this.previewCanvas.addEventListener("click", () => {
-            if(Processor.sourceIsGif) {
-                AppState.isPaused = !AppState.isPaused;
-                doFastUpdate(); // Re-render to show correct active state
+            if (Processor.sourceIsGif) {
+                setAppStateValue("isPaused", !AppState.isPaused);
+                doFastUpdate();
             }
         });
 
-        // Presets
-        this.presetBtns.forEach(btn => {
-            btn.addEventListener("click", (e) => {
-                const [w, h] = e.target.dataset.preset.split('x');
-                this.canvasWidth.value = w;
-                this.canvasHeight.value = h;
+        this.presetBtns.forEach((button) => {
+            button.addEventListener("click", (event) => {
+                const [width, height] = event.currentTarget.dataset.preset.split("x");
+                this.canvasWidth.value = width;
+                this.canvasHeight.value = height;
                 doFastUpdate();
             });
         });
 
-        // Swap W/H
         this.btnSwapWh.addEventListener("click", () => {
-            const w = this.canvasWidth.value;
+            const width = this.canvasWidth.value;
             this.canvasWidth.value = this.canvasHeight.value;
-            this.canvasHeight.value = w;
+            this.canvasHeight.value = width;
             doFastUpdate();
         });
 
-        // Isolated & Defused File Upload Logic
-        this.dropZone.addEventListener('click', (e) => {
-            e.preventDefault();
+        this.dropZone.addEventListener("click", (event) => {
+            event.preventDefault();
             this.fileInput.click();
         });
 
-        // Setup Drag & Drop Visuals
-        const preventDefaults = (e) => { e.preventDefault(); e.stopPropagation(); };
-        
-        ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+        const preventDefaults = (event) => {
+            event.preventDefault();
+            event.stopPropagation();
+        };
+
+        ["dragenter", "dragover", "dragleave", "drop"].forEach((eventName) => {
             this.dropZone.addEventListener(eventName, preventDefaults, false);
         });
 
-        this.dropZone.addEventListener('dragover', () => { 
-            this.dropZone.style.borderColor = "var(--accent)"; 
-            this.dropZone.style.background = "var(--surface-hover)";
+        const setDropZoneDragState = (isActive) => {
+            this.dropZone.classList.toggle("is-dragover", isActive);
+        };
+
+        ["dragenter", "dragover"].forEach((eventName) => {
+            this.dropZone.addEventListener(eventName, () => setDropZoneDragState(true));
         });
 
-        this.dropZone.addEventListener('dragleave', () => { 
-            this.dropZone.style.borderColor = ""; 
-            this.dropZone.style.background = "";
+        ["dragleave", "drop"].forEach((eventName) => {
+            this.dropZone.addEventListener(eventName, () => setDropZoneDragState(false));
         });
 
-        this.dropZone.addEventListener('drop', (e) => {
-            this.dropZone.style.borderColor = "";
-            this.dropZone.style.background = "";
-            const dt = e.dataTransfer;
-            if (dt && dt.files && dt.files.length > 0) {
-                App.handleFile(dt.files[0]);
+        this.dropZone.addEventListener("drop", (event) => {
+            const transfer = event.dataTransfer;
+            if (transfer && transfer.files && transfer.files.length > 0) {
+                App.handleFile(transfer.files[0]);
             }
         });
 
-        // Trigger on selection, then reset the input value so selecting the SAME file twice doesn't lock up
-        this.fileInput.addEventListener("change", (e) => {
-            if (e.target.files && e.target.files.length > 0) {
-                App.handleFile(e.target.files[0]);
-                e.target.value = ''; // Reset allows exact same file upload immediately again
+        this.fileInput.addEventListener("change", (event) => {
+            if (event.target.files && event.target.files.length > 0) {
+                App.handleFile(event.target.files[0]);
+                event.target.value = "";
             }
         });
 
-        // Live Select/Checkbox Updates
         const triggerElements = [
-            this.canvasWidth, this.canvasHeight, this.scaleSelect,
-            this.ditherCheck, this.invertCheck, this.invertBgCheck, this.optFormat,
-            this.optDrawMode, this.previewTheme
+            this.canvasWidth,
+            this.canvasHeight,
+            this.scaleSelect,
+            this.ditherCheck,
+            this.invertCheck,
+            this.invertBgCheck,
+            this.optFormat,
+            this.optDrawMode,
+            this.previewTheme,
         ];
-        triggerElements.forEach(el => el.addEventListener("change", () => {
-            App.updatePreview(true);
-            setTimeout(() => App.updatePreview(false), 50);
-        }));
 
-        // Invert BG Logic
-        const wrapInvertBg = document.getElementById("wrap-invert-bg");
-        this.invertCheck.addEventListener("change", () => {
-            wrapInvertBg.style.display = this.invertCheck.checked ? "inline-flex" : "none";
+        triggerElements.forEach((element) => {
+            element.addEventListener("change", () => {
+                App.updatePreview(true);
+                setTimeout(() => App.updatePreview(false), 50);
+            });
         });
-        // Init state
-        wrapInvertBg.style.display = this.invertCheck.checked ? "inline-flex" : "none";
 
-        // Live Slider Updates
-        let sliderTID = null;
+        const syncInvertBgVisibility = () => {
+            this.wrapInvertBg.classList.toggle("is-hidden", !this.invertCheck.checked);
+        };
+
+        this.invertCheck.addEventListener("change", syncInvertBgVisibility);
+        syncInvertBgVisibility();
+
+        let sliderTimerId = null;
+
         const doLiveSlider = () => {
             App.updatePreview(true);
-            if(sliderTID) clearTimeout(sliderTID);
-            sliderTID = setTimeout(() => App.updatePreview(false), 150);
+            if (sliderTimerId) {
+                clearTimeout(sliderTimerId);
+            }
+            sliderTimerId = setTimeout(() => App.updatePreview(false), 150);
         };
 
-        const resetSlider = (input, valSpan, defaultVal) => {
-            input.value = defaultVal;
-            valSpan.textContent = defaultVal;
+        const resetSlider = (input, valueElement, defaultValue) => {
+            input.value = String(defaultValue);
+            valueElement.textContent = String(defaultValue);
+            input.focus();
             doLiveSlider();
         };
 
-        this.contrastInput.addEventListener("input", e => {
-            this.contrastVal.textContent = e.target.value;
+        this.contrastInput.addEventListener("input", (event) => {
+            this.contrastVal.textContent = event.target.value;
             doLiveSlider();
         });
-        this.contrastInput.addEventListener("dblclick", () => resetSlider(this.contrastInput, this.contrastVal, 0));
-        this.contrastVal.addEventListener("click", () => resetSlider(this.contrastInput, this.contrastVal, 0));
 
-        this.thresholdInput.addEventListener("input", e => {
-            this.thresholdVal.textContent = e.target.value;
+        this.contrastInput.addEventListener("dblclick", () => {
+            resetSlider(this.contrastInput, this.contrastVal, 0);
+        });
+
+        this.contrastVal.addEventListener("click", () => {
+            resetSlider(this.contrastInput, this.contrastVal, 0);
+        });
+
+        this.thresholdInput.addEventListener("input", (event) => {
+            this.thresholdVal.textContent = event.target.value;
             doLiveSlider();
         });
-        this.thresholdInput.addEventListener("dblclick", () => resetSlider(this.thresholdInput, this.thresholdVal, 128));
-        this.thresholdVal.addEventListener("click", () => resetSlider(this.thresholdInput, this.thresholdVal, 128));
+
+        this.thresholdInput.addEventListener("dblclick", () => {
+            resetSlider(this.thresholdInput, this.thresholdVal, 128);
+        });
+
+        this.thresholdVal.addEventListener("click", () => {
+            resetSlider(this.thresholdInput, this.thresholdVal, 128);
+        });
 
         this.optVarName.addEventListener("input", () => {
-            if(sliderTID) clearTimeout(sliderTID);
-            sliderTID = setTimeout(() => App.updatePreview(false), 150);
+            if (sliderTimerId) {
+                clearTimeout(sliderTimerId);
+            }
+            sliderTimerId = setTimeout(() => App.updatePreview(false), 150);
         });
 
-        // Exports
         this.btnCopy.addEventListener("click", () => {
-            if(!this.codeOutput.value) return;
+            if (!this.codeOutput.value) {
+                return;
+            }
             navigator.clipboard.writeText(this.codeOutput.value).then(() => {
                 const originalHtml = this.btnCopy.innerHTML;
                 this.btnCopy.textContent = "Copied!";
-                setTimeout(() => { this.btnCopy.innerHTML = originalHtml; }, 1500);
+                setTimeout(() => {
+                    this.btnCopy.innerHTML = originalHtml;
+                }, 1500);
             });
         });
 
         this.btnDownload.addEventListener("click", () => {
-            if(!this.codeOutput.value) return;
+            if (!this.codeOutput.value) {
+                return;
+            }
+
+            const fileBlob = new Blob([this.codeOutput.value], { type: "text/plain" });
+            const downloadUrl = createManagedObjectUrl(fileBlob);
+            if (!downloadUrl) {
+                return;
+            }
+
             const link = document.createElement("a");
-            link.href = URL.createObjectURL(new Blob([this.codeOutput.value], { type: "text/plain" }));
-            link.download = (this.optVarName.value || "bitmap") + ".h";
+            link.href = downloadUrl;
+            link.download = `${this.optVarName.value || "bitmap"}.h`;
             link.click();
+
+            setTimeout(() => {
+                revokeManagedObjectUrl(downloadUrl);
+            }, 0);
         });
-    }
+    },
 };
 
 const App = {
     init() {
-        initCustomSelects();
-        initCustomSelects();
         UI.init();
+        if (CustomSelectController && typeof CustomSelectController.init === "function") {
+            CustomSelectController.init();
+        }
+
+        if (ActiveUrlManager) {
+            window.addEventListener("beforeunload", () => {
+                ActiveUrlManager.revokeAll();
+            });
+        }
+
         this.updatePreview();
     },
 
     handleFile(file) {
-        if (!file.type.startsWith("image/")) {
-            return alert("Only images are supported.");
-        }
-        
-        // Auto-set Variable Name based on file name
-        let fileName = file.name.split('.').slice(0, -1).join('.');
-        fileName = fileName.replace(/[^a-zA-Z0-9_]/g, '_').replace(/^[0-9]/, '_$&');
-        if(fileName) {
-            UI.optVarName.value = fileName;
+        const isSupportedImage = FileWorkflowService && typeof FileWorkflowService.isSupportedImage === "function"
+            ? FileWorkflowService.isSupportedImage(file)
+            : Boolean(file && typeof file.type === "string" && file.type.startsWith("image/"));
+
+        if (!isSupportedImage) {
+            alert("Only images are supported.");
+            return;
         }
 
-        // Reset animation configurations completely from previous files
-        AppState.currentFrame = 0;
-        AppState.isPaused = false;
+        if (ActiveUrlManager) {
+            ActiveUrlManager.revokeAll();
+        }
+
+        const safeVarName = FileWorkflowService && typeof FileWorkflowService.getSafeVariableName === "function"
+            ? FileWorkflowService.getSafeVariableName(file.name, "bitmap")
+            : (file.name || "")
+                .split(".")
+                .slice(0, -1)
+                .join(".")
+                .replace(/[^a-zA-Z0-9_]/g, "_")
+                .replace(/^[0-9]/, "_$&");
+        if (safeVarName) {
+            UI.optVarName.value = safeVarName;
+        }
+
+        patchAppStateValues({
+            currentFrame: 0,
+            isPaused: false,
+        });
+
         if (AppState.gifTimer) {
             clearTimeout(AppState.gifTimer);
-            AppState.gifTimer = null;
+            setAppStateValue("gifTimer", null);
         }
-        
-        // Directly pipe static images into the DOM without hanging the IO parsing Base64 strings
+
+        if (FileWorkflowService && typeof FileWorkflowService.loadFile === "function") {
+            const loaded = FileWorkflowService.loadFile(file, () => this.updatePreview());
+            if (!loaded) {
+                alert("Unable to load this file.");
+            }
+            return;
+        }
+
         if (file.type !== "image/gif") {
-            const objectUrl = URL.createObjectURL(file);
+            const objectUrl = createManagedObjectUrl(file);
+            if (!objectUrl) {
+                return;
+            }
+
             Processor.loadImage(objectUrl, () => {
+                revokeManagedObjectUrl(objectUrl);
                 this.updatePreview();
-                // We keep the URL to avoid memory leaks since this is a Single Page Application
-                // Best practice is dropping when image unloads, but here we replace sourceImage,
-                // so the browser handles GC on closure map overwrite dynamically.
             });
             return;
         }
 
-        // Heavy GIF operations via ArrayBuffer parser: Use asynchronous threading pattern to free UI loop
+        if (typeof FileReader !== "function") {
+            alert("FileReader is not available in this environment.");
+            return;
+        }
+
         const reader = new FileReader();
-        reader.onload = e => {
-            setTimeout(() => { // Force push microtask queue to allow mouse redraw and animation UI to catch
+        reader.onload = (event) => {
+            setTimeout(() => {
                 try {
-                     Processor.loadGif(e.target.result, () => this.updatePreview());
-                } catch(err) {
-                     console.error("GIF Parsing Exception: Falling back to static cover...", err);
-                     Processor.loadImage(URL.createObjectURL(file), () => this.updatePreview());
+                    Processor.loadGif(event.target.result, () => this.updatePreview());
+                } catch (error) {
+                    console.error("GIF parsing failed. Falling back to static preview.", error);
+                    const fallbackUrl = createManagedObjectUrl(file);
+                    if (!fallbackUrl) {
+                        return;
+                    }
+
+                    Processor.loadImage(fallbackUrl, () => {
+                        revokeManagedObjectUrl(fallbackUrl);
+                        this.updatePreview();
+                    });
                 }
             }, 10);
         };
         reader.readAsArrayBuffer(file);
     },
 
-    getSettings(frameIndex = -1) {
-        let base = {
-            width: parseInt(UI.canvasWidth.value) || 128, 
-            height: parseInt(UI.canvasHeight.value) || 64,
-            scale: UI.scaleSelect.value, 
+    getUiTuningSnapshot() {
+        return {
+            contrast: UI.contrastInput.value,
+            threshold: UI.thresholdInput.value,
+            dither: UI.ditherCheck.checked,
+            invert: UI.invertCheck.checked,
+            invertBg: UI.invertBgCheck.checked,
+        };
+    },
 
-            contrast: parseInt(UI.contrastInput.value),
-            threshold: parseInt(UI.thresholdInput.value),
+    getSettings(frameIndex = -1) {
+        const baseRaw = {
+            width: UI.canvasWidth.value,
+            height: UI.canvasHeight.value,
+            scale: UI.scaleSelect.value,
+            contrast: UI.contrastInput.value,
+            threshold: UI.thresholdInput.value,
             dither: UI.ditherCheck.checked,
             invert: UI.invertCheck.checked,
             invertBg: UI.invertBgCheck.checked,
             flipH: AppState.tFlipH,
-            flipV: AppState.tFlipV, 
+            flipV: AppState.tFlipV,
             rotate: AppState.tRotate,
-            outputFormat: UI.optFormat.value, 
+            outputFormat: UI.optFormat.value,
             drawMode: UI.optDrawMode.value,
-            varName: UI.optVarName.value || "bitmap", 
-            theme: UI.previewTheme.value
+            varName: UI.optVarName.value || "bitmap",
+            theme: UI.previewTheme.value,
         };
-        
-        if (Processor.sourceIsGif && frameIndex >= 0 && Processor.gifFrames[frameIndex] && Processor.gifFrames[frameIndex].tuning) {
+
+        const base = SettingsContract && typeof SettingsContract.normalizeSettings === "function"
+            ? SettingsContract.normalizeSettings(baseRaw)
+            : {
+                width: parseInt(UI.canvasWidth.value, 10) || 128,
+                height: parseInt(UI.canvasHeight.value, 10) || 64,
+                scale: UI.scaleSelect.value,
+                contrast: parseInt(UI.contrastInput.value, 10),
+                threshold: parseInt(UI.thresholdInput.value, 10),
+                dither: UI.ditherCheck.checked,
+                invert: UI.invertCheck.checked,
+                invertBg: UI.invertBgCheck.checked,
+                flipH: AppState.tFlipH,
+                flipV: AppState.tFlipV,
+                rotate: AppState.tRotate,
+                outputFormat: UI.optFormat.value,
+                drawMode: UI.optDrawMode.value,
+                varName: UI.optVarName.value || "bitmap",
+                theme: UI.previewTheme.value,
+            };
+
+        if (
+            Processor.sourceIsGif &&
+            frameIndex >= 0 &&
+            Processor.gifFrames[frameIndex] &&
+            Processor.gifFrames[frameIndex].tuning
+        ) {
+            if (SettingsContract && typeof SettingsContract.mergeFrameTuning === "function") {
+                return SettingsContract.mergeFrameTuning(base, Processor.gifFrames[frameIndex].tuning);
+            }
+
             return Object.assign({}, base, Processor.gifFrames[frameIndex].tuning);
         }
+
         return base;
     },
 
-    applyFrameSlidersToUI(idx) {
-        if (!Processor.sourceIsGif || !Processor.gifFrames[idx]) return;
-        
-        AppState.isUpdatingSliders = true;
-        let t = Processor.gifFrames[idx].tuning || {};
-        
-        UI.contrastInput.value = t.contrast !== undefined ? t.contrast : 0;
-        UI.contrastVal.textContent = UI.contrastInput.value;
-        if (t.invertBg !== undefined) UI.invertBgCheck.checked = t.invertBg;
+    applyFrameSlidersToUI(index) {
+        if (!Processor.sourceIsGif || !Processor.gifFrames[index]) {
+            return;
+        }
 
-        AppState.isUpdatingSliders = false;
+        setAppStateValue("isUpdatingSliders", true);
+
+        const tuning = FrameTuningManager && typeof FrameTuningManager.readFrameTuning === "function"
+            ? FrameTuningManager.readFrameTuning(Processor.gifFrames[index])
+            : (Processor.gifFrames[index].tuning || {});
+
+        UI.contrastInput.value = tuning.contrast !== undefined ? tuning.contrast : 0;
+        UI.contrastVal.textContent = UI.contrastInput.value;
+        UI.thresholdInput.value = tuning.threshold !== undefined ? tuning.threshold : 128;
+        UI.thresholdVal.textContent = UI.thresholdInput.value;
+        UI.ditherCheck.checked = tuning.dither !== undefined ? tuning.dither : false;
+        UI.invertCheck.checked = tuning.invert !== undefined ? tuning.invert : false;
+
+        if (tuning.invertBg !== undefined) {
+            UI.invertBgCheck.checked = tuning.invertBg;
+        }
+
+        UI.wrapInvertBg.classList.toggle("is-hidden", !UI.invertCheck.checked);
+
+        setAppStateValue("isUpdatingSliders", false);
     },
 
-    renderSingleThumbnail(idx) {
-        if (UI.timeline.children.length > idx + 1) {
-            const thumb = UI.timeline.children[idx + 1].querySelector('canvas');
-            if (thumb) {
-                Processor.processFrame(thumb, Processor.gifFrames[idx].imgData, this.getSettings(idx));
+    setActiveTimelineEntry(activeIndex) {
+        if (PreviewService && typeof PreviewService.setTimelineActive === "function") {
+            PreviewService.setTimelineActive(UI.timeline, activeIndex);
+            return;
+        }
+
+        Array.from(UI.timeline.children).forEach((element, index) => {
+            element.classList.toggle("active", index === activeIndex);
+        });
+    },
+
+    syncPresetButtons(settings) {
+        if (PreviewService && typeof PreviewService.setPresetActiveButtons === "function") {
+            PreviewService.setPresetActiveButtons(UI.presetBtns, settings.width, settings.height);
+            return;
+        }
+
+        UI.presetBtns.forEach((button) => {
+            const [width, height] = button.dataset.preset.split("x");
+            const isActive =
+                parseInt(width, 10) === settings.width &&
+                parseInt(height, 10) === settings.height;
+            button.classList.toggle("active", isActive);
+        });
+    },
+
+    syncPreviewSurface(settings) {
+        if (PreviewService && typeof PreviewService.syncPreviewSurface === "function") {
+            PreviewService.syncPreviewSurface(
+                UI.previewCanvas,
+                UI.timeline,
+                Processor.sourceIsGif,
+                settings.width,
+                settings.height,
+            );
+            return;
+        }
+
+        UI.previewCanvas.width = settings.width;
+        UI.previewCanvas.height = settings.height;
+        UI.previewCanvas.classList.toggle("is-gif", Processor.sourceIsGif);
+        UI.timeline.classList.toggle("is-hidden", !Processor.sourceIsGif);
+    },
+
+    renderToCanvas(canvas, source, settings, options) {
+        if (PreviewService && typeof PreviewService.renderToCanvas === "function") {
+            return PreviewService.renderToCanvas(canvas, source, settings, options);
+        }
+
+        return Processor.processFrame(canvas, source, settings, options);
+    },
+
+    renderSingleThumbnail(index) {
+        if (GifWorkflowService && typeof GifWorkflowService.renderSingleThumbnail === "function") {
+            const rendered = GifWorkflowService.renderSingleThumbnail({
+                timeline: UI.timeline,
+                frames: Processor.gifFrames,
+                index,
+                getSettings: (frameIndex) => this.getSettings(frameIndex),
+                renderToCanvas: (canvas, source, settings) => this.renderToCanvas(
+                    canvas,
+                    source,
+                    settings,
+                    PREVIEW_RENDER_OPTIONS,
+                ),
+            });
+            if (rendered) {
+                return;
             }
+        }
+
+        if (UI.timeline.children.length <= index + 1) {
+            return;
+        }
+
+        const thumb = UI.timeline.children[index + 1].querySelector("canvas");
+        if (thumb) {
+            this.renderToCanvas(
+                thumb,
+                Processor.gifFrames[index].imgData,
+                this.getSettings(index),
+                PREVIEW_RENDER_OPTIONS,
+            );
         }
     },
 
     playGif() {
+        if (GifWorkflowService && typeof GifWorkflowService.startPlayback === "function") {
+            GifWorkflowService.startPlayback({
+                appState: AppState,
+                setStateValue: (key, value) => setAppStateValue(key, value),
+                processor: Processor,
+                getSettings: (frameIndex) => this.getSettings(frameIndex),
+                renderToCanvas: (canvas, source, settings) => this.renderToCanvas(
+                    canvas,
+                    source,
+                    settings,
+                    PREVIEW_RENDER_OPTIONS,
+                ),
+                previewCanvas: UI.previewCanvas,
+                previewInfo: UI.previewInfo,
+                setActiveTimelineEntry: (activeIndex) => this.setActiveTimelineEntry(activeIndex),
+            });
+            return;
+        }
+
         if (AppState.gifTimer) {
             clearTimeout(AppState.gifTimer);
+            setAppStateValue("gifTimer", null);
         }
-        
+
         const renderNextFrame = () => {
-            if (!Processor.sourceIsGif) return;
-            
+            if (!Processor.sourceIsGif) {
+                return;
+            }
+
             if (!AppState.isPaused) {
                 const frame = Processor.gifFrames[AppState.currentFrame];
-                const set = this.getSettings(AppState.currentFrame);
-                
-                Processor.processFrame(UI.previewCanvas, frame.imgData, set);
-                const frTxt = ` | GIF: ${AppState.currentFrame + 1}/${Processor.gifFrames.length} fr`;
-                UI.previewInfo.textContent = `${set.width} × ${set.height}${frTxt}`;
-                
-                document.querySelectorAll('.gif-thumb-wrap').forEach((el, idx) => {
-                    el.classList.toggle('active', idx === 0);
-                });
-                AppState.currentFrame = (AppState.currentFrame + 1) % Processor.gifFrames.length;
-                
+                const settings = this.getSettings(AppState.currentFrame);
+
+                this.renderToCanvas(UI.previewCanvas, frame.imgData, settings, PREVIEW_RENDER_OPTIONS);
+                UI.previewInfo.textContent = `${settings.width} × ${settings.height} | GIF: ${AppState.currentFrame + 1}/${Processor.gifFrames.length} fr`;
+
+                this.setActiveTimelineEntry(0);
+
+                setAppStateValue(
+                    "currentFrame",
+                    (AppState.currentFrame + 1) % Processor.gifFrames.length,
+                );
+
                 let delay = frame.delay * 10 || 100;
-                if (delay < 20) delay = 100; 
-                AppState.gifTimer = setTimeout(renderNextFrame, delay);
+                if (delay < 20) {
+                    delay = 100;
+                }
+                setAppStateValue("gifTimer", setTimeout(renderNextFrame, delay));
             } else {
-                const set = this.getSettings();
-                const frTxt = ` | GIF: ${AppState.currentFrame + 1}/${Processor.gifFrames.length} fr (Paused)`;
-                UI.previewInfo.textContent = `${set.width} × ${set.height}${frTxt}`;
-                AppState.gifTimer = setTimeout(renderNextFrame, 100);
+                const settings = this.getSettings();
+                UI.previewInfo.textContent = `${settings.width} × ${settings.height} | GIF: ${AppState.currentFrame + 1}/${Processor.gifFrames.length} fr (Paused)`;
+                setAppStateValue("gifTimer", setTimeout(renderNextFrame, 100));
             }
         };
+
         renderNextFrame();
     },
 
     updatePreview(isLive = false) {
-        if (AppState.isUpdatingSliders) return;
+        if (AppState.isUpdatingSliders) {
+            return;
+        }
 
-        const setCurrent = this.getSettings(AppState.isPaused ? AppState.currentFrame : -1);
+        const currentSettings = this.getSettings(AppState.isPaused ? AppState.currentFrame : -1);
 
-        UI.presetBtns.forEach(btn => {
-            const [w, h] = btn.dataset.preset.split('x');
-            if (parseInt(w) === setCurrent.width && parseInt(h) === setCurrent.height) {
-                btn.classList.add('active');
-            } else {
-                btn.classList.remove('active');
-            }
-        });
-        
-        UI.previewInfo.textContent = `${setCurrent.width} × ${setCurrent.height}`;
+        this.syncPresetButtons(currentSettings);
 
-        if (!Processor.sourceImage) return;
+        UI.previewInfo.textContent = `${currentSettings.width} × ${currentSettings.height}`;
 
-        const setGlobal = this.getSettings(-1);
+        if (!Processor.sourceImage) {
+            return;
+        }
 
-        UI.previewCanvas.width = setCurrent.width;
-        UI.previewCanvas.height = setCurrent.height;
+        const globalSettings = this.getSettings(-1);
+
+        this.syncPreviewSurface(currentSettings);
 
         if (Processor.sourceIsGif) {
-            UI.previewCanvas.style.cursor = "pointer";
-            UI.timeline.style.display = "flex";
+            const uiTuning = this.getUiTuningSnapshot();
 
-            if (AppState.isPaused) {
-                // Save tuning state into the current frame
-                let f = Processor.gifFrames[AppState.currentFrame];
-                if (!f.tuning) f.tuning = {};
-                f.tuning.contrast = parseInt(UI.contrastInput.value);
-                f.tuning.threshold = parseInt(UI.thresholdInput.value);
-                f.tuning.dither = UI.ditherCheck.checked;
-                f.tuning.invert = UI.invertCheck.checked;
-                f.tuning.invertBg = UI.invertBgCheck.checked;
-            } else {
-                Processor.gifFrames.forEach(f => {
-                    if (!f.tuning) f.tuning = {};
-                    f.tuning.contrast = parseInt(UI.contrastInput.value);
-                    f.tuning.threshold = parseInt(UI.thresholdInput.value);
-                    f.tuning.dither = UI.ditherCheck.checked;
-                    f.tuning.invert = UI.invertCheck.checked;
-                    f.tuning.invertBg = UI.invertBgCheck.checked;
+            if (GifWorkflowService && typeof GifWorkflowService.applyUiTuning === "function") {
+                GifWorkflowService.applyUiTuning({
+                    frames: Processor.gifFrames,
+                    isPaused: AppState.isPaused,
+                    currentFrame: AppState.currentFrame,
+                    uiTuning,
                 });
+            } else if (AppState.isPaused) {
+                const activeFrame = Processor.gifFrames[AppState.currentFrame];
+                if (FrameTuningManager && typeof FrameTuningManager.applyUiTuningToFrame === "function") {
+                    FrameTuningManager.applyUiTuningToFrame(activeFrame, uiTuning);
+                } else if (activeFrame) {
+                    activeFrame.tuning = Object.assign({}, activeFrame.tuning || {}, uiTuning);
+                }
+            } else {
+                if (FrameTuningManager && typeof FrameTuningManager.applyUiTuningToFrames === "function") {
+                    FrameTuningManager.applyUiTuningToFrames(Processor.gifFrames, uiTuning);
+                } else {
+                    Processor.gifFrames.forEach((frame) => {
+                        frame.tuning = Object.assign({}, frame.tuning || {}, uiTuning);
+                    });
+                }
             }
 
-            let needsRebuild = (UI.timeline.children.length === 0 || 
-                                setCurrent.width !== AppState.lastW || 
-                                setCurrent.height !== AppState.lastH || 
-                                setCurrent.scale !== AppState.lastScale);
+            const needsRebuild = GifWorkflowService && typeof GifWorkflowService.needsTimelineRebuild === "function"
+                ? GifWorkflowService.needsTimelineRebuild({
+                    timeline: UI.timeline,
+                    currentSettings,
+                    lastW: AppState.lastW,
+                    lastH: AppState.lastH,
+                    lastScale: AppState.lastScale,
+                })
+                : (
+                    UI.timeline.children.length === 0 ||
+                    currentSettings.width !== AppState.lastW ||
+                    currentSettings.height !== AppState.lastH ||
+                    currentSettings.scale !== AppState.lastScale
+                );
 
             if (needsRebuild) {
-                UI.timeline.innerHTML = ""; 
-                
-                const animWrap = document.createElement("div");
-                animWrap.className = "gif-thumb-wrap " + (!AppState.isPaused ? "active" : "");
-                animWrap.title = "Play Full Animation";
-                
-                const animThumb = document.createElement("canvas");
-                animThumb.className = "gif-frame-thumb animation-thumb";
-                animThumb.width = setCurrent.width;
-                animThumb.height = setCurrent.height;
-                Processor.processFrame(animThumb, Processor.gifFrames[0].imgData, this.getSettings(0));
-                
-                const playIcon = document.createElement("div");
-                playIcon.className = "thumb-label play-icon";
-                playIcon.innerHTML = `<svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>`;
+                if (GifWorkflowService && typeof GifWorkflowService.rebuildTimeline === "function") {
+                    GifWorkflowService.rebuildTimeline({
+                        timeline: UI.timeline,
+                        frames: Processor.gifFrames,
+                        isPaused: AppState.isPaused,
+                        currentFrame: AppState.currentFrame,
+                        currentSettings,
+                        getSettings: (frameIndex) => this.getSettings(frameIndex),
+                        renderToCanvas: (canvas, source, settings) => this.renderToCanvas(
+                            canvas,
+                            source,
+                            settings,
+                            PREVIEW_RENDER_OPTIONS,
+                        ),
+                        onPlayAll: () => {
+                            setAppStateValue("isPaused", false);
+                            this.applyFrameSlidersToUI(0);
+                            this.updatePreview();
+                        },
+                        onSelectFrame: (index, frame) => {
+                            patchAppStateValues({
+                                isPaused: true,
+                                currentFrame: index,
+                            });
+                            this.applyFrameSlidersToUI(index);
+                            this.renderToCanvas(
+                                UI.previewCanvas,
+                                frame.imgData,
+                                this.getSettings(index),
+                                PREVIEW_RENDER_OPTIONS,
+                            );
 
-                animWrap.appendChild(animThumb);
-                animWrap.appendChild(playIcon);
-                animWrap.onclick = () => {
-                    AppState.isPaused = false;
-                    this.applyFrameSlidersToUI(0);
-                    this.updatePreview();
-                };
-                UI.timeline.appendChild(animWrap);
+                            this.setActiveTimelineEntry(index + 1);
 
-                Processor.gifFrames.forEach((fr, idx) => {
-                    const thumbWrap = document.createElement("div");
-                    thumbWrap.className = "gif-thumb-wrap " + (AppState.isPaused && AppState.currentFrame === idx ? "active" : "");
-                    thumbWrap.title = `Frame ${idx + 1}`;
-
-                    const thumb = document.createElement("canvas");
-                    thumb.className = "gif-frame-thumb";
-                    thumb.width = setCurrent.width;
-                    thumb.height = setCurrent.height;
-                    Processor.processFrame(thumb, fr.imgData, this.getSettings(idx));
-
-                    const frameLbl = document.createElement("div");
-                    frameLbl.className = "thumb-label";
-                    frameLbl.textContent = idx + 1;
-
-                    thumbWrap.appendChild(thumb);
-                    thumbWrap.appendChild(frameLbl);
-
-                    thumbWrap.onclick = () => {
-                        AppState.isPaused = true;
-                        AppState.currentFrame = idx;
-                        this.applyFrameSlidersToUI(idx);
-                        Processor.processFrame(UI.previewCanvas, fr.imgData, this.getSettings(idx));
-                        document.querySelectorAll('.gif-thumb-wrap').forEach((el, i) => {
-                            el.classList.toggle('active', i === idx + 1);
-                        });
-                        this.updatePreview();
-                    };
-                    UI.timeline.appendChild(thumbWrap);
-                });
-            } else {
-                if (AppState.isPaused) {
-                    this.renderSingleThumbnail(AppState.currentFrame);
+                            this.updatePreview();
+                        },
+                    });
                 } else {
-                    if(!isLive) {
-                        for(let i=0; i<Processor.gifFrames.length; i++) this.renderSingleThumbnail(i);
-                        Processor.processFrame(UI.timeline.children[0].querySelector('canvas'), Processor.gifFrames[0].imgData, this.getSettings(0));
+                    UI.timeline.innerHTML = "";
+                }
+            } else {
+                if (GifWorkflowService && typeof GifWorkflowService.refreshTimelineThumbnails === "function") {
+                    GifWorkflowService.refreshTimelineThumbnails({
+                        timeline: UI.timeline,
+                        frames: Processor.gifFrames,
+                        isPaused: AppState.isPaused,
+                        currentFrame: AppState.currentFrame,
+                        isLive,
+                        getSettings: (frameIndex) => this.getSettings(frameIndex),
+                        renderToCanvas: (canvas, source, settings) => this.renderToCanvas(
+                            canvas,
+                            source,
+                            settings,
+                            PREVIEW_RENDER_OPTIONS,
+                        ),
+                    });
+                } else if (AppState.isPaused) {
+                    this.renderSingleThumbnail(AppState.currentFrame);
+                } else if (!isLive) {
+                    for (let i = 0; i < Processor.gifFrames.length; i += 1) {
+                        this.renderSingleThumbnail(i);
+                    }
+
+                    const animationCanvas = UI.timeline.children[0]?.querySelector("canvas");
+                    if (animationCanvas) {
+                        this.renderToCanvas(
+                            animationCanvas,
+                            Processor.gifFrames[0].imgData,
+                            this.getSettings(0),
+                            PREVIEW_RENDER_OPTIONS,
+                        );
                     }
                 }
             }
 
             if (AppState.isPaused) {
-                Processor.processFrame(UI.previewCanvas, Processor.gifFrames[AppState.currentFrame].imgData, this.getSettings(AppState.currentFrame));
-                document.querySelectorAll('.gif-thumb-wrap').forEach((el, i) => {
-                    el.classList.toggle('active', i === AppState.currentFrame + 1);
-                });
-            } else {
-                if(!AppState.gifTimer) this.playGif();
+                this.renderToCanvas(
+                    UI.previewCanvas,
+                    Processor.gifFrames[AppState.currentFrame].imgData,
+                    this.getSettings(AppState.currentFrame),
+                    PREVIEW_RENDER_OPTIONS,
+                );
+
+                this.setActiveTimelineEntry(AppState.currentFrame + 1);
+            } else if (!AppState.gifTimer) {
+                this.playGif();
             }
 
-            AppState.lastW = setCurrent.width;
-            AppState.lastH = setCurrent.height; 
-            AppState.lastScale = setCurrent.scale;
+            patchAppStateValues({
+                lastW: currentSettings.width,
+                lastH: currentSettings.height,
+                lastScale: currentSettings.scale,
+            });
         } else {
-            UI.previewCanvas.style.cursor = "default";
-            UI.timeline.style.display = "none";
-            UI.previewInfo.textContent = `${setCurrent.width} × ${setCurrent.height}`;
-            Processor.processFrame(UI.previewCanvas, Processor.sourceImage, setCurrent);
+            this.renderToCanvas(UI.previewCanvas, Processor.sourceImage, currentSettings, PREVIEW_RENDER_OPTIONS);
         }
-        
-        if(!isLive) {
-            UI.codeOutput.value = Generator.generate(setGlobal);
+
+        if (!isLive) {
+            UI.codeOutput.value = Generator.generate(globalSettings);
         }
-    }
+    },
 };
 
 document.addEventListener("DOMContentLoaded", () => App.init());
-
-
-
-
-
-
-
-function initCustomSelects() {
-    document.querySelectorAll('select.custom-select').forEach(select => {
-        if (select.nextElementSibling && select.nextElementSibling.classList.contains('custom-select-wrapper')) return;
-        
-        const wrapper = document.createElement('div');
-        wrapper.className = 'custom-select-wrapper ' + (select.classList.contains('sm') ? 'sm' : '');
-        
-        const trigger = document.createElement('div');
-        trigger.className = 'custom-select-trigger';
-        
-        const textSpan = document.createElement('span');
-        const selectedOption = select.options[select.selectedIndex];
-        textSpan.textContent = selectedOption ? selectedOption.text : '';
-        trigger.appendChild(textSpan);
-        
-        const icon = document.createElement('div');
-        icon.className = 'custom-select-icon';
-        icon.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>';
-        trigger.appendChild(icon);
-        
-        const dropdown = document.createElement('div');
-        dropdown.className = 'custom-select-dropdown';
-        
-        Array.from(select.options).forEach((option, index) => {
-            const item = document.createElement('div');
-            item.className = 'custom-select-option' + (index === select.selectedIndex ? ' selected' : '');
-            item.textContent = option.text;
-            item.addEventListener('click', (e) => {
-                e.stopPropagation();
-                select.selectedIndex = index;
-                textSpan.textContent = option.text;
-                select.dispatchEvent(new Event('change'));
-                
-                dropdown.querySelectorAll('.custom-select-option').forEach(opt => opt.classList.remove('selected'));
-                item.classList.add('selected');
-                
-                wrapper.classList.remove('open');
-            });
-            dropdown.appendChild(item);
-        });
-        
-        wrapper.appendChild(trigger);
-        wrapper.appendChild(dropdown);
-        
-        select.style.display = 'none';
-        select.parentNode.insertBefore(wrapper, select.nextSibling);
-
-        trigger.addEventListener('click', (e) => {
-            e.stopPropagation();
-            document.querySelectorAll('.custom-select-wrapper').forEach(w => {
-                if(w !== wrapper) w.classList.remove('open');
-            });
-            wrapper.classList.toggle('open');
-        });
-        
-        select.addEventListener('change', () => {
-             const idx = select.selectedIndex;
-             const opts = dropdown.querySelectorAll('.custom-select-option');
-             opts.forEach(o => o.classList.remove('selected'));
-             if(opts[idx]) opts[idx].classList.add('selected');
-             textSpan.textContent = select.options[idx].text;
-        });
-    });
-
-    document.addEventListener('click', () => {
-        document.querySelectorAll('.custom-select-wrapper').forEach(w => w.classList.remove('open'));
-    });
-}
-
-
-function initCustomSelects() {
-    document.querySelectorAll('select.custom-select').forEach(select => {
-        if (select.nextElementSibling && select.nextElementSibling.classList.contains('custom-select-wrapper')) return;
-        
-        const wrapper = document.createElement('div');
-        wrapper.className = 'custom-select-wrapper ' + (select.classList.contains('sm') ? 'sm' : '');
-        
-        const trigger = document.createElement('div');
-        trigger.className = 'custom-select-trigger';
-        
-        const textSpan = document.createElement('span');
-        const selectedOption = select.options[select.selectedIndex];
-        textSpan.textContent = selectedOption ? selectedOption.text : '';
-        trigger.appendChild(textSpan);
-        
-        const icon = document.createElement('div');
-        icon.className = 'custom-select-icon';
-        icon.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>';
-        trigger.appendChild(icon);
-        
-        const dropdown = document.createElement('div');
-        dropdown.className = 'custom-select-dropdown';
-        
-        Array.from(select.options).forEach((option, index) => {
-            const item = document.createElement('div');
-            item.className = 'custom-select-option' + (index === select.selectedIndex ? ' selected' : '');
-            item.textContent = option.text;
-            item.addEventListener('click', (e) => {
-                e.stopPropagation();
-                select.selectedIndex = index;
-                textSpan.textContent = option.text;
-                select.dispatchEvent(new Event('change'));
-                
-                dropdown.querySelectorAll('.custom-select-option').forEach(opt => opt.classList.remove('selected'));
-                item.classList.add('selected');
-                
-                wrapper.classList.remove('open');
-            });
-            dropdown.appendChild(item);
-        });
-        
-        wrapper.appendChild(trigger);
-        wrapper.appendChild(dropdown);
-        
-        select.style.display = 'none';
-        select.parentNode.insertBefore(wrapper, select.nextSibling);
-
-        trigger.addEventListener('click', (e) => {
-            e.stopPropagation();
-            document.querySelectorAll('.custom-select-wrapper').forEach(w => {
-                if(w !== wrapper) w.classList.remove('open');
-            });
-            wrapper.classList.toggle('open');
-        });
-        
-        select.addEventListener('change', () => {
-             const idx = select.selectedIndex;
-             const opts = dropdown.querySelectorAll('.custom-select-option');
-             opts.forEach(o => o.classList.remove('selected'));
-             if(opts[idx]) opts[idx].classList.add('selected');
-             textSpan.textContent = select.options[idx].text;
-        });
-    });
-
-    document.addEventListener('click', () => {
-        document.querySelectorAll('.custom-select-wrapper').forEach(w => w.classList.remove('open'));
-    });
-}
