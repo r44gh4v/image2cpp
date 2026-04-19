@@ -1,4 +1,6 @@
 (function initImage2CppGifWorkflowService(root) {
+    const MIN_FRAME_DELAY_MS = 20;
+
     function create(options) {
         const opts = options || {};
         const frameTuningManager = opts.frameTuningManager || null;
@@ -157,6 +159,7 @@
             const isLive = Boolean(config.isLive);
             const getSettings = config.getSettings;
             const renderToCanvas = config.renderToCanvas;
+            const requestFrame = typeof config.requestFrame === "function" ? config.requestFrame : null;
 
             if (!timeline || frames.length === 0 || typeof getSettings !== "function" || typeof renderToCanvas !== "function") {
                 return;
@@ -174,22 +177,30 @@
             }
 
             if (!isLive) {
-                for (let index = 0; index < frames.length; index += 1) {
-                    renderSingleThumbnail({
-                        timeline,
-                        frames,
-                        index,
-                        getSettings,
-                        renderToCanvas,
-                    });
-                }
+                const renderBatch = () => {
+                    for (let index = 0; index < frames.length; index += 1) {
+                        renderSingleThumbnail({
+                            timeline,
+                            frames,
+                            index,
+                            getSettings,
+                            renderToCanvas,
+                        });
+                    }
 
-                const animationWrap = timeline.children[0];
-                const animationCanvas = animationWrap && typeof animationWrap.querySelector === "function"
-                    ? animationWrap.querySelector("canvas")
-                    : null;
-                if (animationCanvas) {
-                    renderToCanvas(animationCanvas, frames[0].imgData, getSettings(0));
+                    const animationWrap = timeline.children[0];
+                    const animationCanvas = animationWrap && typeof animationWrap.querySelector === "function"
+                        ? animationWrap.querySelector("canvas")
+                        : null;
+                    if (animationCanvas) {
+                        renderToCanvas(animationCanvas, frames[0].imgData, getSettings(0));
+                    }
+                };
+
+                if (requestFrame) {
+                    requestFrame(renderBatch);
+                } else {
+                    renderBatch();
                 }
             }
         }
@@ -206,6 +217,15 @@
             const setActiveTimelineEntry = config.setActiveTimelineEntry;
             const scheduleFn = typeof config.scheduleFn === "function" ? config.scheduleFn : setTimeout;
             const clearFn = typeof config.clearFn === "function" ? config.clearFn : clearTimeout;
+            const nowFn = typeof config.nowFn === "function"
+                ? config.nowFn
+                : (() => {
+                    if (typeof performance !== "undefined" && typeof performance.now === "function") {
+                        return performance.now();
+                    }
+
+                    return Date.now();
+                });
 
             if (!processor || typeof getSettings !== "function" || typeof renderToCanvas !== "function") {
                 return;
@@ -234,7 +254,9 @@
                     const frame = frames[appState.currentFrame];
                     const settings = getSettings(appState.currentFrame);
 
+                    const renderStart = nowFn();
                     renderToCanvas(previewCanvas, frame.imgData, settings);
+                    const renderDuration = nowFn() - renderStart;
                     if (previewInfo) {
                         previewInfo.textContent = `${settings.width} × ${settings.height} | GIF: ${appState.currentFrame + 1}/${frames.length} fr`;
                     }
@@ -251,8 +273,12 @@
                     }
 
                     let delay = frame.delay * 10 || 100;
-                    if (delay < 20) {
+                    if (delay < MIN_FRAME_DELAY_MS) {
                         delay = 100;
+                    }
+
+                    if (renderDuration > delay) {
+                        delay = MIN_FRAME_DELAY_MS;
                     }
 
                     const timerId = scheduleFn(renderNextFrame, delay);

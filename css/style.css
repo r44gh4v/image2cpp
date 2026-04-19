@@ -53,8 +53,29 @@
     --font-code: "JetBrains Mono", "JetBrains Mono Fallback", "Cascadia Mono", Consolas, monospace;
 
     --shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
-    --transition-fast: 0.15s cubic-bezier(0.4, 0, 0.2, 1);
-    --transition-base: 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    --duration-instant: 0s;
+    --duration-ui-fast: 0.12s;
+    --duration-ui: 0.16s;
+    --duration-base: 0.22s;
+    --duration-entrance: 0.26s;
+    --duration-feedback: 0.34s;
+
+    --ease-standard: cubic-bezier(0.4, 0, 0.2, 1);
+    --ease-smooth: cubic-bezier(0.22, 0.61, 0.36, 1);
+    --ease-bounce: cubic-bezier(0.34, 1.56, 0.64, 1);
+    --ease-enter: cubic-bezier(0, 0.55, 0.45, 1);
+
+    --transition-fast: var(--duration-ui) var(--ease-standard);
+    --transition-base: var(--duration-base) var(--ease-standard);
+
+    --scale-hover: 1.03;
+    --scale-active: 0.95;
+    --scale-badge-hover: 1.11;
+    --scale-badge-active: 0.93;
+    --scale-drop-active: 0.99;
+    --lift-hover: -1px;
+    --lift-thumb-active: -2px;
+
     --app-header-height: 43px;
     --workspace-gap: 1rem;
     --layout-inline-pad: clamp(0.5rem, 1.2vw, 1rem);
@@ -67,7 +88,7 @@
     --state-hover-border: rgba(255, 199, 0, 0.45);
     --state-hover-bg: rgba(255, 199, 0, 0.08);
     --state-active-bg: rgba(255, 199, 0, 0.18);
-    --state-press-scale: 0.96;
+    --state-press-scale: var(--scale-active);
     --state-disabled-opacity: 0.48;
 }
 
@@ -165,6 +186,11 @@ body {
     padding: 0.75rem;
     display: flex;
     flex-direction: column;
+    animation: cardIn var(--duration-entrance) var(--ease-enter) both;
+}
+
+.panel > .card:nth-child(2) {
+    animation-delay: 0.06s;
 }
 
 .card.flex-col {
@@ -237,18 +263,18 @@ label {
 .badge.interactive {
     user-select: none;
     cursor: pointer;
-    transition: transform var(--transition-fast), background var(--transition-base), color var(--transition-base), box-shadow var(--transition-base);
+    transition: transform var(--duration-ui) var(--ease-bounce), background-color var(--duration-ui-fast) var(--ease-standard), color var(--duration-ui-fast) var(--ease-standard);
 }
 
 .badge.interactive:hover {
     background: var(--accent);
     color: #000;
-    transform: scale(1.12);
+    transform: scale(var(--scale-badge-hover)) rotate(-1deg);
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
 }
 
 .badge.interactive:active {
-    transform: scale(0.95);
+    transform: scale(var(--scale-badge-active));
 }
 
 input[type="number"],
@@ -262,7 +288,7 @@ input[type="text"],
     color: var(--text);
     font-size: 13px;
     font-family: var(--font-ui);
-    transition: border-color var(--transition-base), box-shadow var(--transition-base), transform var(--transition-fast), background var(--transition-base), color var(--transition-base);
+    transition: border-color var(--duration-ui-fast) var(--ease-standard), box-shadow var(--duration-ui) var(--ease-smooth), transform var(--duration-ui) var(--ease-smooth), background-color var(--duration-ui-fast) var(--ease-standard), color var(--duration-ui-fast) var(--ease-standard);
 }
 
 input[type="number"],
@@ -336,13 +362,14 @@ input[type="text"]:hover,
     border-radius: var(--radius-sm);
     color: var(--text);
     cursor: pointer;
-    transition: border-color var(--transition-base), color var(--transition-base), transform var(--transition-fast);
+    transition: border-color var(--duration-ui-fast) var(--ease-standard), color var(--duration-ui-fast) var(--ease-standard), background-color var(--duration-ui-fast) var(--ease-standard), transform var(--duration-ui) var(--ease-smooth);
 }
 
 .icon-btn:hover {
     border-color: var(--accent);
     color: var(--accent);
     background: var(--state-hover-bg);
+    transform: translateY(var(--lift-hover)) scale(var(--scale-hover));
 }
 
 input[type="range"] {
@@ -368,16 +395,17 @@ input[type="range"]::-webkit-slider-thumb {
     box-shadow: 0 0 5px rgba(0, 0, 0, 0.5);
     cursor: grab;
     -webkit-appearance: none;
-    transition: transform var(--transition-fast), background-color var(--transition-base);
+    transition: transform var(--duration-ui) var(--ease-smooth), background-color var(--duration-ui-fast) var(--ease-standard);
 }
 
 input[type="range"]:hover::-webkit-slider-thumb {
     background: var(--accent);
-    transform: scale(1.1);
+    transform: scale(1.08);
 }
 
 input[type="range"]:active::-webkit-slider-thumb {
     cursor: grabbing;
+    transform: scale(1.16) translateY(var(--lift-thumb-active));
 }
 
 .checkbox-row {
@@ -407,7 +435,7 @@ input[type="range"]:active::-webkit-slider-thumb {
     background: var(--bg);
     border: 1px solid var(--border);
     border-radius: var(--radius-xs);
-    transition: border-color var(--transition-base), background var(--transition-base);
+    transition: border-color var(--duration-ui-fast) var(--ease-standard), background-color var(--duration-ui-fast) var(--ease-standard), transform var(--duration-ui) var(--ease-bounce);
 }
 
 .cb-wrap:hover .cb {
@@ -417,6 +445,7 @@ input[type="range"]:active::-webkit-slider-thumb {
 .cb-wrap input:checked ~ .cb {
     background: var(--accent);
     border-color: var(--accent);
+    transform: scale(1.06);
 }
 
 .cb-wrap input:checked ~ .cb::after {
@@ -448,14 +477,14 @@ input[type="range"]:active::-webkit-slider-thumb {
     font-family: var(--font-code);
     text-align: center;
     cursor: pointer;
-    transition: background var(--transition-base), color var(--transition-base), border-color var(--transition-base), transform var(--transition-fast);
+    transition: background-color var(--duration-ui-fast) var(--ease-standard), color var(--duration-ui-fast) var(--ease-standard), border-color var(--duration-ui-fast) var(--ease-standard), transform var(--duration-ui) var(--ease-smooth);
 }
 
 .preset-btn:hover {
     background: var(--surface-hover);
     color: var(--text);
     border-color: var(--accent);
-    transform: translateY(-1px);
+    transform: translateY(var(--lift-hover)) scale(var(--scale-hover));
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.22);
 }
 
@@ -484,12 +513,13 @@ input[type="range"]:active::-webkit-slider-thumb {
     font-size: 12px;
     font-weight: 500;
     cursor: pointer;
-    transition: background var(--transition-base), color var(--transition-base), border-color var(--transition-base), transform var(--transition-fast);
+    transition: background-color var(--duration-ui-fast) var(--ease-standard), color var(--duration-ui-fast) var(--ease-standard), border-color var(--duration-ui-fast) var(--ease-standard), transform var(--duration-ui) var(--ease-smooth);
 }
 
 .action-btn:hover {
     background: var(--border);
     border-color: var(--state-hover-border);
+    transform: translateY(var(--lift-hover)) scale(var(--scale-hover));
 }
 
 .action-btn.outline:hover {
@@ -525,7 +555,7 @@ input[type="range"]:active::-webkit-slider-thumb {
     flex-direction: column;
     gap: 0.35rem;
     cursor: pointer;
-    transition: border-color var(--transition-base), background var(--transition-base), transform var(--transition-fast);
+    transition: border-color var(--duration-ui-fast) var(--ease-standard), background-color var(--duration-ui-fast) var(--ease-standard), transform var(--duration-ui) var(--ease-smooth), box-shadow var(--duration-ui-fast) var(--ease-standard);
 }
 
 .drop-zone:hover,
@@ -535,8 +565,12 @@ input[type="range"]:active::-webkit-slider-thumb {
     box-shadow: inset 0 0 0 1px var(--accent-dim);
 }
 
+.drop-zone.is-dragover {
+    animation: gentlePop var(--duration-feedback) var(--ease-smooth) infinite alternate;
+}
+
 .drop-zone:active {
-    transform: scale(0.995);
+    transform: scale(var(--scale-drop-active));
 }
 
 .drop-icon {
@@ -630,23 +664,26 @@ input[type="range"]:active::-webkit-slider-thumb {
     background: var(--surface);
     opacity: 0.5;
     cursor: pointer;
-    transition: opacity var(--transition-fast), border-color var(--transition-base), box-shadow var(--transition-base), transform var(--transition-fast);
+    transition: opacity var(--duration-ui-fast) var(--ease-standard), border-color var(--duration-ui-fast) var(--ease-standard), background-color var(--duration-ui-fast) var(--ease-standard), transform var(--duration-ui) var(--ease-smooth);
+    animation: thumbIn var(--duration-entrance) var(--ease-enter) both;
 }
 
 .gif-thumb-wrap:hover {
     opacity: 1;
     border-color: var(--text-muted);
+    transform: translateY(var(--lift-hover));
 }
 
 .gif-thumb-wrap.active,
 .gif-thumb-wrap:hover {
     opacity: 1;
     border-color: var(--accent);
+    background: var(--state-hover-bg);
     box-shadow: 0 4px 10px rgba(0, 0, 0, 0.4);
 }
 
 .gif-thumb-wrap:active {
-    transform: scale(0.98);
+    transform: scale(0.97);
 }
 
 .gif-thumb-wrap:has(.animation-thumb).active {
@@ -787,7 +824,7 @@ input[type="range"]:active::-webkit-slider-thumb {
     display: flex;
     align-items: center;
     color: var(--text-muted);
-    transition: transform var(--transition-base);
+    transition: transform var(--duration-ui) var(--ease-smooth);
 }
 
 .custom-select-wrapper.sm .custom-select-icon svg {
@@ -807,6 +844,7 @@ input[type="range"]:active::-webkit-slider-thumb {
     z-index: 100;
     max-height: 240px;
     overflow-y: auto;
+    overflow-x: hidden;
     display: none;
     background: var(--surface);
     border: 1px solid var(--border);
@@ -816,13 +854,14 @@ input[type="range"]:active::-webkit-slider-thumb {
 
 .custom-select-wrapper.open .custom-select-dropdown {
     display: block;
-    animation: slideDown var(--transition-fast);
+    animation: slideDown var(--duration-entrance) var(--ease-enter);
 }
 
 .custom-select-option {
     padding: 0.45rem 0.6rem;
     color: var(--text);
     cursor: pointer;
+    transition: background-color var(--duration-ui-fast) var(--ease-standard), color var(--duration-ui-fast) var(--ease-standard), transform var(--duration-ui-fast) var(--ease-standard);
 }
 
 .custom-select-wrapper.sm .custom-select-option {
@@ -831,6 +870,7 @@ input[type="range"]:active::-webkit-slider-thumb {
 
 .custom-select-option:hover {
     background: var(--surface-hover);
+    transform: none;
 }
 
 .custom-select-option:active {
@@ -848,11 +888,42 @@ input[type="range"]:active::-webkit-slider-thumb {
 @keyframes slideDown {
     from {
         opacity: 0;
-        transform: translateY(-4px);
+        transform: translateY(-6px);
     }
     to {
         opacity: 1;
         transform: translateY(0);
+    }
+}
+
+@keyframes cardIn {
+    from {
+        opacity: 0;
+        transform: translateY(6px) scale(0.99);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
+}
+
+@keyframes thumbIn {
+    from {
+        opacity: 0;
+        transform: translateY(4px) scale(0.94);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
+}
+
+@keyframes gentlePop {
+    from {
+        transform: scale(1);
+    }
+    to {
+        transform: scale(1.01);
     }
 }
 
@@ -883,6 +954,7 @@ input[type="radio"],
 
 :where(button, input, select, textarea):disabled {
     opacity: var(--state-disabled-opacity);
+    filter: grayscale(0.25);
     cursor: not-allowed;
 }
 
@@ -906,6 +978,7 @@ input[type="radio"],
     border: 4px solid transparent;
     border-radius: 999px;
     background-clip: padding-box;
+    transition: background-color var(--duration-ui-fast) var(--ease-standard);
 }
 
 ::-webkit-scrollbar-thumb:hover {
@@ -986,12 +1059,34 @@ input[type="radio"],
 }
 
 @media (prefers-reduced-motion: reduce) {
+    :root {
+        --duration-instant: 0s;
+        --duration-ui-fast: 0s;
+        --duration-ui: 0s;
+        --duration-base: 0s;
+        --duration-entrance: 0s;
+        --duration-feedback: 0s;
+        --scale-hover: 1;
+        --scale-active: 1;
+        --scale-badge-hover: 1;
+        --scale-badge-active: 1;
+        --scale-drop-active: 1;
+        --lift-hover: 0px;
+        --lift-thumb-active: 0px;
+    }
+
     *,
     *::before,
     *::after {
-        animation-duration: 0.01ms !important;
+        animation-duration: 0s !important;
         animation-iteration-count: 1 !important;
-        transition-duration: 0.01ms !important;
+        transition-duration: 0s !important;
         scroll-behavior: auto !important;
+    }
+
+    .drop-zone.is-dragover,
+    .gif-thumb-wrap,
+    .panel > .card {
+        animation: none !important;
     }
 }
