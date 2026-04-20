@@ -41,6 +41,7 @@ const GifWorkflowServiceFactory = window.Image2CppGifWorkflowService;
 const CustomSelectController = window.Image2CppCustomSelect;
 const FileWorkflowServiceFactory = window.Image2CppFileWorkflowService;
 const UiThemeServiceFactory = window.Image2CppUiThemeService;
+const VisitCounterServiceFactory = window.Image2CppVisitCounterService;
 const ActiveUrlManager = UrlManagerFactory && typeof UrlManagerFactory.create === "function"
     ? UrlManagerFactory.create()
     : null;
@@ -65,6 +66,12 @@ const UiThemeService = UiThemeServiceFactory && typeof UiThemeServiceFactory.cre
         defaultMode: "system",
         modeSequence: ["system", "light", "dark"],
     })
+    : null;
+const VisitCounterConfig = typeof window.Image2CppVisitCounterConfig === "object" && window.Image2CppVisitCounterConfig
+    ? window.Image2CppVisitCounterConfig
+    : {};
+const VisitCounterService = VisitCounterServiceFactory && typeof VisitCounterServiceFactory.create === "function"
+    ? VisitCounterServiceFactory.create(VisitCounterConfig)
     : null;
 
 const APP_THEME_MODE_LABELS = {
@@ -173,6 +180,7 @@ const UI = {
         this.optVarName = document.getElementById("var-name");
         this.previewTheme = document.getElementById("preview-theme");
         this.appThemeToggle = document.getElementById("app-theme-toggle");
+        this.visitCount = document.getElementById("visit-count");
 
         this.previewCanvas = document.getElementById("preview-canvas");
         this.previewInfo = document.getElementById("preview-info");
@@ -421,6 +429,39 @@ const UI = {
         this.appThemeToggle.title = `${buttonText} (${resolvedTheme})`;
         this.appThemeToggle.setAttribute("aria-label", `App theme mode: ${modeLabel} (${resolvedTheme})`);
     },
+
+    syncVisitCount(snapshot) {
+        if (!this.visitCount) {
+            return;
+        }
+
+        const safeSnapshot = snapshot || {};
+        const value = Number(safeSnapshot.value);
+
+        if (safeSnapshot.loading === true) {
+            this.visitCount.textContent = "Visits: ...";
+            this.visitCount.dataset.state = "loading";
+            this.visitCount.setAttribute("aria-label", "Unique visits: loading");
+            this.visitCount.title = "Unique visits";
+            return;
+        }
+
+        if (Number.isFinite(value) && value >= 0) {
+            const safeValue = Math.floor(value);
+            const formatted = safeValue.toLocaleString();
+
+            this.visitCount.textContent = `Visits: ${formatted}`;
+            this.visitCount.dataset.state = "ready";
+            this.visitCount.setAttribute("aria-label", `Unique visits: ${formatted}`);
+            this.visitCount.title = "Unique visits";
+            return;
+        }
+
+        this.visitCount.textContent = "Visits: --";
+        this.visitCount.dataset.state = "unavailable";
+        this.visitCount.setAttribute("aria-label", "Unique visits unavailable");
+        this.visitCount.title = "Unique visits unavailable";
+    },
 };
 
 const App = {
@@ -481,6 +522,19 @@ const App = {
             UI.syncThemeToggle(initialThemeSnapshot || UiThemeService.getSnapshot());
         } else {
             UI.syncThemeToggle();
+        }
+
+        if (VisitCounterService && typeof VisitCounterService.getUniqueVisitCount === "function") {
+            UI.syncVisitCount({ loading: true });
+            VisitCounterService.getUniqueVisitCount()
+                .then((snapshot) => {
+                    UI.syncVisitCount(snapshot);
+                })
+                .catch(() => {
+                    UI.syncVisitCount({ value: null });
+                });
+        } else {
+            UI.syncVisitCount({ value: null });
         }
 
         if (ActiveUrlManager) {
