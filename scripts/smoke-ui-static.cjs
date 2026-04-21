@@ -50,11 +50,11 @@ assert(html.includes('rel="manifest" href="manifest.json"'), "Missing web app ma
 assert(html.includes('window.Image2CppVisitCounterConfig'), "Missing first-party visit counter config");
 
 assert(
-    html.includes('name="google-site-verification" content="lq_9FkMsSsJFQs45Rldynox2MuGWefzc1Rcc_9DGRe0"'),
+    html.includes('name="google-site-verification" content="I5ZvegZI3e-rPTF0VLgq5SJU88_7BwiUdf4xN8NuYzc"'),
     "Missing Google Search Console verification meta tag",
 );
 assert(
-    html.includes('https://www.googletagmanager.com/gtag/js?id=G-RRDJ2CF0XN'),
+    html.includes('https://www.googletagmanager.com/gtag/js?id=G-07YZ2LEC2T'),
     "Missing GA4 gtag loader script",
 );
 assert(

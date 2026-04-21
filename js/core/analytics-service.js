@@ -1,5 +1,5 @@
 (function initImage2CppAnalyticsService(root) {
-    const DEFAULT_MEASUREMENT_ID = "G-RRDJ2CF0XN";
+    const DEFAULT_MEASUREMENT_ID = "G-07YZ2LEC2T";
 
     function sanitizeEventName(rawValue) {
         const normalized = String(rawValue || "")
