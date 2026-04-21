@@ -5,6 +5,20 @@ const repoRoot = path.resolve(__dirname, "..");
 const indexPath = path.join(repoRoot, "index.html");
 const cssPath = path.join(repoRoot, "css", "style.css");
 
+const requiredRootFiles = [
+    "robots.txt",
+    "sitemap.xml",
+    "manifest.json",
+    "llms.txt",
+    "llms-full.txt",
+    path.join("docs", "index.html"),
+    path.join("docs", "faq.html"),
+    path.join("docs", "getting-started.html"),
+    path.join("docs", "gif-workflow.html"),
+    path.join("docs", "arduino-oled-guide.html"),
+    path.join("docs", "troubleshooting.html"),
+];
+
 function assert(condition, message) {
     if (!condition) {
         throw new Error(message);
@@ -17,6 +31,19 @@ function readText(filePath) {
 
 const html = readText(indexPath);
 const css = readText(cssPath);
+
+requiredRootFiles.forEach((relativePath) => {
+    const fullPath = path.join(repoRoot, relativePath);
+    assert(fs.existsSync(fullPath), `Missing required SEO/GEO file ${relativePath}`);
+});
+
+assert(html.includes('name="description"'), "Missing meta description");
+assert(html.includes('rel="canonical" href="https://r44gh4v.github.io/image2cpp/"'), "Missing canonical URL");
+assert(html.includes('name="robots" content="index,follow'), "Missing robots meta");
+assert(html.includes('property="og:title"'), "Missing Open Graph title");
+assert(html.includes('name="twitter:card"'), "Missing Twitter card tag");
+assert(html.includes('application/ld+json'), "Missing JSON-LD schema");
+assert(html.includes('rel="manifest" href="manifest.json"'), "Missing web app manifest link");
 
 assert(
     html.includes('name="google-site-verification" content="lq_9FkMsSsJFQs45Rldynox2MuGWefzc1Rcc_9DGRe0"'),
@@ -94,6 +121,7 @@ const requiredCssSelectors = [
     ".gif-frames-timeline",
     ".gif-thumb-wrap.active",
     ".drop-zone.is-dragover",
+    ".seo-discovery",
     ".is-hidden",
 ];
 

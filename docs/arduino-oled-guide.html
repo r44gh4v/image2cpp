@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>image2cpp Arduino OLED Guide - Adafruit GFX and u8g2 Tips</title>
+    <meta name="description" content="Practical Arduino OLED integration guide for image2cpp output arrays with Adafruit GFX and u8g2 style rendering.">
+    <link rel="canonical" href="https://r44gh4v.github.io/image2cpp/docs/arduino-oled-guide.html">
+    <style>
+        body { font-family: Segoe UI, Arial, sans-serif; max-width: 900px; margin: 2rem auto; padding: 0 1rem; line-height: 1.6; }
+    </style>
+</head>
+<body>
+    <p><a href="index.html">Docs Home</a> | <a href="../index.html">Open App</a></p>
+    <h1>Arduino OLED Guide</h1>
+
+    <h2>Mode Selection</h2>
+    <p>Use vertical byte packing for most Adafruit GFX and u8g2-compatible bitmap workflows.</p>
+
+    <h2>Dimension Matching</h2>
+    <p>Match array dimensions to the physical display buffer dimensions to avoid clipping or distortion.</p>
+
+    <h2>Memory Tips</h2>
+    <ul>
+        <li>Prefer PROGMEM export on AVR boards.</li>
+        <li>Use simpler source art for cleaner 1-bit output.</li>
+        <li>Reduce frame count for GIF-based animations.</li>
+    </ul>
+</body>
+</html>

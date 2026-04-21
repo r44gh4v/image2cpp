@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>image2cpp GIF Workflow - Convert GIF Frames to C++ Arrays</title>
+    <meta name="description" content="Guide for converting animated GIFs into C++ frame arrays using image2cpp, including timeline tuning and export strategy.">
+    <link rel="canonical" href="https://r44gh4v.github.io/image2cpp/docs/gif-workflow.html">
+    <style>
+        body { font-family: Segoe UI, Arial, sans-serif; max-width: 900px; margin: 2rem auto; padding: 0 1rem; line-height: 1.6; }
+    </style>
+</head>
+<body>
+    <p><a href="index.html">Docs Home</a> | <a href="../index.html">Open App</a></p>
+    <h1>GIF Workflow</h1>
+    <p>image2cpp supports GIF timeline workflows so you can tune and export frame arrays for animation on constrained displays.</p>
+
+    <h2>Recommended Workflow</h2>
+    <ol>
+        <li>Upload GIF and verify resolution matches your display target.</li>
+        <li>Use threshold/contrast tuning globally, then pause and tune specific frames as needed.</li>
+        <li>Use a consistent naming strategy for frame arrays.</li>
+        <li>Export in Arduino PROGMEM for memory-constrained devices.</li>
+    </ol>
+
+    <h2>Performance Notes</h2>
+    <p>Large frame counts and high resolutions can increase processing time and firmware size. Keep dimensions compact for smooth playback on low-power MCUs.</p>
+</body>
+</html>

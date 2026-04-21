@@ -1,0 +1,6 @@
+User-agent: *
+Allow: /image2cpp/
+Disallow: /image2cpp/scripts/
+Disallow: /image2cpp/tests/
+
+Sitemap: https://r44gh4v.github.io/image2cpp/sitemap.xml

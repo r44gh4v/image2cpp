@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>image2cpp Troubleshooting - Fix Conversion and Display Issues</title>
+    <meta name="description" content="Troubleshooting guide for image2cpp conversion quality, display mismatch, and integration issues in Arduino/OLED projects.">
+    <link rel="canonical" href="https://r44gh4v.github.io/image2cpp/docs/troubleshooting.html">
+    <style>
+        body { font-family: Segoe UI, Arial, sans-serif; max-width: 900px; margin: 2rem auto; padding: 0 1rem; line-height: 1.6; }
+    </style>
+</head>
+<body>
+    <p><a href="index.html">Docs Home</a> | <a href="../index.html">Open App</a></p>
+    <h1>Troubleshooting</h1>
+
+    <h2>Output is mostly blank</h2>
+    <p>Lower threshold and recheck image contrast. Monochrome conversion can remove faint details at high thresholds.</p>
+
+    <h2>Bitmap appears inverted</h2>
+    <p>Toggle invert/invert background controls and verify your display color polarity.</p>
+
+    <h2>Image looks stretched</h2>
+    <p>Use Fit (preserve ratio) scaling unless your target display explicitly needs stretched output.</p>
+
+    <h2>Firmware too large</h2>
+    <p>Reduce dimensions and frame count; prefer static images over large GIF sequences for constrained boards.</p>
+</body>
+</html>

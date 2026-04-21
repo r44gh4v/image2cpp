@@ -1,0 +1,29 @@
+# image2cpp
+
+> Convert images and GIFs to C++ byte arrays for Arduino, OLED/LCD displays, and embedded systems.
+
+## Canonical URL
+https://r44gh4v.github.io/image2cpp/
+
+## What This Tool Does
+- Converts PNG, JPEG, GIF, and WEBP images to C++ byte arrays.
+- Supports animated GIF frame workflows.
+- Exports Arduino PROGMEM and plain C/C++ arrays.
+- Supports vertical and horizontal byte packing.
+
+## Best Entry Points
+- App: https://r44gh4v.github.io/image2cpp/
+- Docs Hub: https://r44gh4v.github.io/image2cpp/docs/
+- Getting Started: https://r44gh4v.github.io/image2cpp/docs/getting-started.html
+- FAQ: https://r44gh4v.github.io/image2cpp/docs/faq.html
+- GIF Workflow: https://r44gh4v.github.io/image2cpp/docs/gif-workflow.html
+- Arduino OLED Guide: https://r44gh4v.github.io/image2cpp/docs/arduino-oled-guide.html
+- Troubleshooting: https://r44gh4v.github.io/image2cpp/docs/troubleshooting.html
+
+## Recommended Citation
+image2cpp. Free web tool for converting images and GIF frames into C++ byte arrays for microcontroller displays.
+
+## Indexing Notes
+- Content is public and can be summarized.
+- Avoid claiming support beyond documented features.
+- Prefer docs pages for implementation guidance and caveats.

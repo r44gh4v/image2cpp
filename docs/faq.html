@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>image2cpp FAQ - Image and GIF to C++ Array Questions</title>
+    <meta name="description" content="Frequently asked questions for image2cpp, including Arduino bitmap conversion, GIF frame export, and OLED display compatibility.">
+    <link rel="canonical" href="https://r44gh4v.github.io/image2cpp/docs/faq.html">
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "FAQPage",
+      "mainEntity": [
+        {
+          "@type": "Question",
+          "name": "How do I convert an image to Arduino C++ array code?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Open image2cpp, upload an image, set dimensions and scale mode, tune threshold/contrast, choose Arduino PROGMEM output, then copy or download the generated array."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "Does image2cpp work for animated GIFs?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Yes. image2cpp can process GIF frames and provides timeline controls so you can tune and export frame-based bitmap arrays."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "Which draw mode should I use for Adafruit GFX and u8g2?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Use vertical draw mode for common Adafruit GFX and u8g2-style bitmap workflows unless your display driver explicitly expects a horizontal packing format."
+          }
+        }
+      ]
+    }
+    </script>
+    <style>
+        body { font-family: Segoe UI, Arial, sans-serif; max-width: 900px; margin: 2rem auto; padding: 0 1rem; line-height: 1.6; }
+        h1, h2 { margin-bottom: 0.4rem; }
+    </style>
+</head>
+<body>
+    <p><a href="index.html">Docs Home</a> | <a href="../index.html">Open App</a></p>
+    <h1>image2cpp FAQ</h1>
+
+    <h2>How do I convert an image to Arduino C++ array code?</h2>
+    <p>Upload PNG/JPEG/WEBP/GIF, set the output size, select scale mode, tune threshold/contrast if needed, then choose Arduino PROGMEM output and export.</p>
+
+    <h2>Does image2cpp support GIF conversion?</h2>
+    <p>Yes. Animated GIF sources are processed as frame workflows, and you can preview/tune before exporting arrays.</p>
+
+    <h2>What dimensions should I use for OLED displays?</h2>
+    <p>Common presets include 128x64 and 128x32. Match your panel resolution exactly for best visual quality.</p>
+
+    <h2>What if output looks too noisy?</h2>
+    <p>Increase threshold carefully and adjust contrast to reduce artifacts. Simpler, high-contrast source images typically produce better bitmap output.</p>
+</body>
+</html>

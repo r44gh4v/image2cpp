@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>image2cpp Getting Started - Convert Images to C++ Arrays</title>
+    <meta name="description" content="Step-by-step getting started guide for image2cpp to convert images into C++ arrays for Arduino and OLED displays.">
+    <link rel="canonical" href="https://r44gh4v.github.io/image2cpp/docs/getting-started.html">
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "HowTo",
+      "name": "Convert an image to Arduino C++ array with image2cpp",
+      "step": [
+        {"@type": "HowToStep", "text": "Open image2cpp and upload your image file."},
+        {"@type": "HowToStep", "text": "Set target dimensions and scaling mode."},
+        {"@type": "HowToStep", "text": "Tune threshold and contrast for readability."},
+        {"@type": "HowToStep", "text": "Select Arduino PROGMEM or plain C/C++ output."},
+        {"@type": "HowToStep", "text": "Copy or download the generated array and include it in firmware."}
+      ]
+    }
+    </script>
+    <style>
+        body { font-family: Segoe UI, Arial, sans-serif; max-width: 900px; margin: 2rem auto; padding: 0 1rem; line-height: 1.6; }
+        pre { background: #111; color: #ddd; padding: 0.8rem; border-radius: 8px; overflow-x: auto; }
+    </style>
+</head>
+<body>
+    <p><a href="index.html">Docs Home</a> | <a href="../index.html">Open App</a></p>
+    <h1>Getting Started with image2cpp</h1>
+    <ol>
+        <li>Upload your image or GIF.</li>
+        <li>Pick a display size preset (for example 128x64 OLED).</li>
+        <li>Adjust contrast and threshold until the preview looks clean.</li>
+        <li>Choose output mode and variable name.</li>
+        <li>Copy the generated array into your firmware project.</li>
+    </ol>
+
+    <h2>Minimal Arduino Example</h2>
+    <pre><code>#include &lt;Adafruit_SSD1306.h&gt;
+#include "bitmap.h"
+
+Adafruit_SSD1306 display(128, 64, &amp;Wire, -1);
+
+void setup() {
+  display.begin(SSD1306_SWITCHCAPVCC, 0x3C);
+  display.clearDisplay();
+  display.drawBitmap(0, 0, epd_bitmap_img, 128, 64, WHITE);
+  display.display();
+}
+</code></pre>
+</body>
+</html>

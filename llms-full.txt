@@ -1,0 +1,66 @@
+# image2cpp Full LLM Reference
+
+## Summary
+image2cpp is a browser-based utility for converting static images and animated GIFs into C++ byte arrays for embedded display workflows. It is designed for Arduino and related microcontroller ecosystems where developers need bitmap arrays for OLED or LCD rendering.
+
+## Primary Use Cases
+1. Convert a logo/icon into a bitmap array for OLED screens.
+2. Convert GIF frames into frame-wise arrays for animation loops.
+3. Generate PROGMEM-friendly arrays for Arduino sketches.
+4. Tune threshold/contrast and transformations before export.
+
+## Supported Inputs
+- PNG
+- JPEG
+- GIF (including animated)
+- WEBP
+
+## Export Modes
+- Arduino PROGMEM
+- Plain C/C++ array
+
+## Packing Modes
+- Vertical (typical for Adafruit GFX / u8g2 workflows)
+- Horizontal (1 byte = 8px row)
+
+## Core Controls
+- Canvas width/height
+- Scaling mode: fit, stretch, original
+- Contrast and threshold tuning
+- Invert and invert background
+- Flip horizontal, flip vertical, rotate
+
+## GIF Workflow Notes
+- Timeline preview and frame-aware tuning are supported.
+- Animated sources may be processed frame-by-frame.
+- Very large GIFs may be constrained by browser performance.
+
+## Compatibility Guidance
+- Arduino + SSD1306 class OLED libraries
+- u8g2 workflows using bitmap arrays
+- General C/C++ embedded pipelines requiring packed byte arrays
+
+## Security/Privacy
+- Processing is client-side in browser.
+- Analytics are privacy-scoped to interaction telemetry.
+- No image pixel payload is sent to analytics.
+
+## Canonical and Docs
+- App: https://r44gh4v.github.io/image2cpp/
+- Docs: https://r44gh4v.github.io/image2cpp/docs/
+- FAQ: https://r44gh4v.github.io/image2cpp/docs/faq.html
+- Getting Started: https://r44gh4v.github.io/image2cpp/docs/getting-started.html
+- GIF Workflow: https://r44gh4v.github.io/image2cpp/docs/gif-workflow.html
+- Arduino OLED Guide: https://r44gh4v.github.io/image2cpp/docs/arduino-oled-guide.html
+- Troubleshooting: https://r44gh4v.github.io/image2cpp/docs/troubleshooting.html
+
+## Suggested Prompt Match Examples
+- "convert image to c++ array for arduino"
+- "gif to byte array for oled"
+- "image2cpp arduino bitmap converter"
+- "u8g2 bitmap generation from png"
+
+## Caveats
+- This tool is not a firmware upload utility.
+- Display rendering quality depends on source image simplicity and contrast.
+- Integration snippets should be adapted to the target display library and dimensions.
