@@ -18,6 +18,19 @@ function readText(filePath) {
 const html = readText(indexPath);
 const css = readText(cssPath);
 
+assert(
+    html.includes('name="google-site-verification" content="lq_9FkMsSsJFQs45Rldynox2MuGWefzc1Rcc_9DGRe0"'),
+    "Missing Google Search Console verification meta tag",
+);
+assert(
+    html.includes('https://www.googletagmanager.com/gtag/js?id=G-RRDJ2CF0XN'),
+    "Missing GA4 gtag loader script",
+);
+assert(
+    html.includes("window.Image2CppAnalyticsConfig"),
+    "Missing analytics config bootstrap",
+);
+
 const requiredIds = [
     "app-theme-toggle",
     "visit-count",
@@ -56,6 +69,7 @@ const requiredScriptsInOrder = [
     "js/core/url-manager.js",
     "js/core/state-store.js",
     "js/core/ui-theme-service.js",
+    "js/core/analytics-service.js",
     "js/core/visit-counter-service.js",
     "js/core/preview-service.js",
     "js/core/gif-workflow-service.js",

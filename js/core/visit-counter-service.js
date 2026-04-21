@@ -242,22 +242,30 @@
             const endpoint = `${baseUrl}/${action}/${encodeURIComponent(namespace)}/${encodeURIComponent(key)}`;
             const hasAbortController = typeof root.AbortController === "function";
             const controller = hasAbortController ? new root.AbortController() : null;
-            const timerId = controller
-                ? setTimeoutImpl(() => {
-                    controller.abort();
-                }, requestTimeoutMs)
-                : null;
+            let timerId = null;
+
+            const timeoutPromise = new Promise((resolve, reject) => {
+                timerId = setTimeoutImpl(() => {
+                    if (controller) {
+                        controller.abort();
+                    }
+                    reject(new Error("request-timeout"));
+                }, requestTimeoutMs);
+            });
 
             try {
-                const response = await fetchImpl(endpoint, {
-                    method: "GET",
-                    mode: "cors",
-                    cache: "no-store",
-                    headers: {
-                        Accept: "application/json",
-                    },
-                    signal: controller ? controller.signal : undefined,
-                });
+                const response = await Promise.race([
+                    fetchImpl(endpoint, {
+                        method: "GET",
+                        mode: "cors",
+                        cache: "no-store",
+                        headers: {
+                            Accept: "application/json",
+                        },
+                        signal: controller ? controller.signal : undefined,
+                    }),
+                    timeoutPromise,
+                ]);
 
                 if (!response || response.ok !== true || typeof response.json !== "function") {
                     const status = response && typeof response.status !== "undefined"

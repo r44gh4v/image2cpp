@@ -270,8 +270,9 @@ body {
     font-family: var(--font-code);
 }
 
+.visit-count[data-state="loading"],
 .visit-count[data-state="ready"] {
-    color: var(--text);
+    color: var(--text-muted);
 }
 
 .visit-count[data-state="unavailable"] {

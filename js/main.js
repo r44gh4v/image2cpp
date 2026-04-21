@@ -41,6 +41,7 @@ const GifWorkflowServiceFactory = window.Image2CppGifWorkflowService;
 const CustomSelectController = window.Image2CppCustomSelect;
 const FileWorkflowServiceFactory = window.Image2CppFileWorkflowService;
 const UiThemeServiceFactory = window.Image2CppUiThemeService;
+const AnalyticsServiceFactory = window.Image2CppAnalyticsService;
 const VisitCounterServiceFactory = window.Image2CppVisitCounterService;
 const ActiveUrlManager = UrlManagerFactory && typeof UrlManagerFactory.create === "function"
     ? UrlManagerFactory.create()
@@ -67,6 +68,12 @@ const UiThemeService = UiThemeServiceFactory && typeof UiThemeServiceFactory.cre
         modeSequence: ["system", "light", "dark"],
     })
     : null;
+const AnalyticsConfig = typeof window.Image2CppAnalyticsConfig === "object" && window.Image2CppAnalyticsConfig
+    ? window.Image2CppAnalyticsConfig
+    : {};
+const AnalyticsService = AnalyticsServiceFactory && typeof AnalyticsServiceFactory.create === "function"
+    ? AnalyticsServiceFactory.create(AnalyticsConfig)
+    : null;
 const VisitCounterConfig = typeof window.Image2CppVisitCounterConfig === "object" && window.Image2CppVisitCounterConfig
     ? window.Image2CppVisitCounterConfig
     : {};
@@ -79,9 +86,22 @@ const APP_THEME_MODE_LABELS = {
     light: "Light",
     dark: "Dark",
 };
+const VISIT_COUNTER_TIMEOUT_MS = 6500;
 
 function getAppThemeModeLabel(mode) {
     return APP_THEME_MODE_LABELS[mode] || APP_THEME_MODE_LABELS.dark;
+}
+
+function trackAnalytics(methodName, ...args) {
+    if (!AnalyticsService || typeof AnalyticsService[methodName] !== "function") {
+        return;
+    }
+
+    try {
+        AnalyticsService[methodName](...args);
+    } catch (error) {
+        // Analytics failures should never interrupt app flows.
+    }
 }
 
 function setAppStateValue(key, value) {
@@ -230,16 +250,19 @@ const UI = {
 
         this.btnFlipH.addEventListener("click", () => {
             setAppStateValue("tFlipH", !AppState.tFlipH);
+            trackAnalytics("trackTransformation", "flip_h");
             doFastUpdate();
         });
 
         this.btnFlipV.addEventListener("click", () => {
             setAppStateValue("tFlipV", !AppState.tFlipV);
+            trackAnalytics("trackTransformation", "flip_v");
             doFastUpdate();
         });
 
         this.btnRotate.addEventListener("click", () => {
             setAppStateValue("tRotate", (AppState.tRotate + 90) % 360);
+            trackAnalytics("trackTransformation", "rotate_90");
             doFastUpdate();
         });
 
@@ -255,6 +278,7 @@ const UI = {
                 const [width, height] = event.currentTarget.dataset.preset.split("x");
                 this.canvasWidth.value = width;
                 this.canvasHeight.value = height;
+                trackAnalytics("trackPreset", event.currentTarget.dataset.preset);
                 doFastUpdate();
             });
         });
@@ -322,6 +346,21 @@ const UI = {
                 if (AppState.isUpdatingSliders) {
                     return;
                 }
+
+                if (element === this.scaleSelect) {
+                    trackAnalytics("trackSettingChange", "scale_mode", this.scaleSelect.value);
+                } else if (element === this.optFormat) {
+                    trackAnalytics("trackSettingChange", "output_format", this.optFormat.value);
+                } else if (element === this.optDrawMode) {
+                    trackAnalytics("trackSettingChange", "draw_mode", this.optDrawMode.value);
+                } else if (element === this.previewTheme) {
+                    trackAnalytics("trackSettingChange", "preview_theme", this.previewTheme.value);
+                } else if (element === this.invertCheck) {
+                    trackAnalytics("trackTransformation", this.invertCheck.checked ? "invert_on" : "invert_off");
+                } else if (element === this.invertBgCheck) {
+                    trackAnalytics("trackTransformation", this.invertBgCheck.checked ? "invert_bg_on" : "invert_bg_off");
+                }
+
                 App.requestPreviewCycle(PREVIEW_TIMING.fast);
             });
         });
@@ -372,6 +411,10 @@ const UI = {
                 return;
             }
             navigator.clipboard.writeText(this.codeOutput.value).then(() => {
+                trackAnalytics("trackExport", "copy", {
+                    outputFormat: this.optFormat.value,
+                    drawMode: this.optDrawMode.value,
+                });
                 const originalHtml = this.btnCopy.innerHTML;
                 this.btnCopy.textContent = "Copied!";
                 setTimeout(() => {
@@ -396,6 +439,11 @@ const UI = {
             link.download = `${this.optVarName.value || "bitmap"}.h`;
             link.click();
 
+            trackAnalytics("trackExport", "download", {
+                outputFormat: this.optFormat.value,
+                drawMode: this.optDrawMode.value,
+            });
+
             setTimeout(() => {
                 revokeManagedObjectUrl(downloadUrl);
             }, 0);
@@ -405,6 +453,7 @@ const UI = {
             this.appThemeToggle.addEventListener("click", () => {
                 const snapshot = UiThemeService.cycleMode();
                 this.syncThemeToggle(snapshot);
+                trackAnalytics("trackThemeChange", snapshot.mode, snapshot.resolvedTheme);
             });
         }
     },
@@ -524,14 +573,34 @@ const App = {
             UI.syncThemeToggle();
         }
 
+        trackAnalytics("trackPageView");
+
         if (VisitCounterService && typeof VisitCounterService.getUniqueVisitCount === "function") {
+            let hasResolvedVisitCounter = false;
+
+            const settleVisitCounter = (snapshot) => {
+                if (hasResolvedVisitCounter) {
+                    return;
+                }
+
+                hasResolvedVisitCounter = true;
+                UI.syncVisitCount(snapshot);
+            };
+
             UI.syncVisitCount({ loading: true });
+
+            const timeoutId = setTimeout(() => {
+                settleVisitCounter({ value: null });
+            }, VISIT_COUNTER_TIMEOUT_MS);
+
             VisitCounterService.getUniqueVisitCount()
                 .then((snapshot) => {
-                    UI.syncVisitCount(snapshot);
+                    clearTimeout(timeoutId);
+                    settleVisitCounter(snapshot);
                 })
                 .catch(() => {
-                    UI.syncVisitCount({ value: null });
+                    clearTimeout(timeoutId);
+                    settleVisitCounter({ value: null });
                 });
         } else {
             UI.syncVisitCount({ value: null });
@@ -557,6 +626,8 @@ const App = {
             alert("Only images are supported.");
             return;
         }
+
+        trackAnalytics("trackFileUpload", file);
 
         if (ActiveUrlManager) {
             ActiveUrlManager.revokeAll();
