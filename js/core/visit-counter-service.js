@@ -1,9 +1,8 @@
 (function initImage2CppVisitCounterService(root) {
-    const DEFAULT_BASE_URL = "https://api.countapi.xyz";
-    const DEFAULT_NAMESPACE_PREFIX = "image2cpp";
+    const DEFAULT_ENDPOINT_PATH = "/api/visits";
     const DEFAULT_KEY = "unique-visits-v1";
-    const DEFAULT_RETRY_DELAYS_MS = [0, 380, 900];
-    const DEFAULT_REQUEST_TIMEOUT_MS = 4500;
+    const DEFAULT_RETRY_DELAYS_MS = [0, 320, 840];
+    const DEFAULT_REQUEST_TIMEOUT_MS = 4200;
     const DEFAULT_LOCK_TTL_MS = 8000;
     const DEFAULT_LOCK_WAIT_MS = 260;
 
@@ -21,6 +20,14 @@
             return fallback;
         }
         return Math.max(minimum, parsed);
+    }
+
+    function parseCounterValue(rawValue) {
+        const parsed = Number(rawValue);
+        if (!Number.isFinite(parsed) || parsed < 0) {
+            return null;
+        }
+        return Math.floor(parsed);
     }
 
     function safeReadStorage(storage, key) {
@@ -43,7 +50,7 @@
         try {
             storage.setItem(key, String(value));
         } catch (error) {
-            // Ignore quota and private-mode write failures.
+            // Ignore private mode and quota failures.
         }
     }
 
@@ -91,15 +98,18 @@
     function create(options) {
         const config = options || {};
         const locationLike = config.location || (typeof root.location !== "undefined" ? root.location : null);
+        const rawProtocol = String(locationLike && locationLike.protocol ? locationLike.protocol : "").toLowerCase();
         const rawHost = String(locationLike && locationLike.hostname ? locationLike.hostname : "").toLowerCase();
-        const host = sanitizeToken(locationLike && locationLike.hostname ? locationLike.hostname : "site", "site");
+        const isHttpProtocol = rawProtocol === "http:" || rawProtocol === "https:";
         const isLocalHost = rawHost === "localhost" || rawHost === "127.0.0.1";
-        const isEnabled = config.enabled !== false && (!isLocalHost || config.allowLocalhost === true);
-        const namespace = sanitizeToken(config.namespace || `${DEFAULT_NAMESPACE_PREFIX}-${host}`, `${DEFAULT_NAMESPACE_PREFIX}-site`);
+
         const key = sanitizeToken(config.key || DEFAULT_KEY, DEFAULT_KEY);
-        const baseUrl = typeof config.baseUrl === "string" && config.baseUrl
-            ? config.baseUrl.replace(/\/+$/, "")
-            : DEFAULT_BASE_URL;
+        const endpointPath = typeof config.endpointPath === "string" && config.endpointPath
+            ? config.endpointPath
+            : DEFAULT_ENDPOINT_PATH;
+        const isEnabled = config.enabled !== false
+            && isHttpProtocol
+            && (!isLocalHost || config.allowLocalhost === true);
 
         const retryDelaysMs = Array.isArray(config.retryDelaysMs) && config.retryDelaysMs.length > 0
             ? config.retryDelaysMs.slice()
@@ -123,7 +133,7 @@
 
         const storagePrefix = typeof config.storagePrefix === "string" && config.storagePrefix
             ? config.storagePrefix
-            : `image2cpp.visitCounter.${namespace}.${key}`;
+            : `image2cpp.visitCounter.${key}`;
 
         const countedStorageKey = `${storagePrefix}.counted`;
         const cachedValueKey = `${storagePrefix}.lastValue`;
@@ -135,8 +145,8 @@
             value: null,
             source: "init",
             counted: false,
-            namespace,
             key,
+            endpointPath,
         };
 
         function hasCountedVisit() {
@@ -155,21 +165,16 @@
         }
 
         function readCachedValue() {
-            const raw = safeReadStorage(storage, cachedValueKey);
-            const parsed = Number(raw);
-            if (!Number.isFinite(parsed) || parsed < 0) {
-                return null;
-            }
-            return Math.floor(parsed);
+            return parseCounterValue(safeReadStorage(storage, cachedValueKey));
         }
 
         function writeCachedValue(value) {
-            const parsed = Number(value);
-            if (!Number.isFinite(parsed) || parsed < 0) {
+            const parsed = parseCounterValue(value);
+            if (parsed === null) {
                 return;
             }
 
-            safeWriteStorage(storage, cachedValueKey, Math.floor(parsed));
+            safeWriteStorage(storage, cachedValueKey, parsed);
         }
 
         function parseLock(rawValue) {
@@ -234,12 +239,18 @@
             });
         }
 
+        function buildEndpoint(action) {
+            const safeAction = action === "hit" ? "hit" : "get";
+            const separator = endpointPath.includes("?") ? "&" : "?";
+            return `${endpointPath}${separator}op=${safeAction}&key=${encodeURIComponent(key)}`;
+        }
+
         async function fetchCounterValue(action) {
             if (typeof fetchImpl !== "function") {
                 throw new Error("fetch-unavailable");
             }
 
-            const endpoint = `${baseUrl}/${action}/${encodeURIComponent(namespace)}/${encodeURIComponent(key)}`;
+            const endpoint = buildEndpoint(action);
             const hasAbortController = typeof root.AbortController === "function";
             const controller = hasAbortController ? new root.AbortController() : null;
             let timerId = null;
@@ -257,8 +268,8 @@
                 const response = await Promise.race([
                     fetchImpl(endpoint, {
                         method: "GET",
-                        mode: "cors",
                         cache: "no-store",
+                        credentials: "same-origin",
                         headers: {
                             Accept: "application/json",
                         },
@@ -275,13 +286,13 @@
                 }
 
                 const payload = await response.json();
-                const value = Number(payload && payload.value);
+                const value = parseCounterValue(payload && payload.value);
 
-                if (!Number.isFinite(value) || value < 0) {
+                if (value === null) {
                     throw new Error("invalid-counter-value");
                 }
 
-                return Math.floor(value);
+                return value;
             } finally {
                 if (timerId !== null) {
                     clearTimeoutImpl(timerId);
@@ -317,8 +328,8 @@
                     value: cachedValue,
                     source: cachedValue === null ? "disabled" : "cache",
                     counted: hasCountedVisit(),
-                    namespace,
                     key,
+                    endpointPath,
                 };
                 return lastSnapshot;
             }
@@ -338,8 +349,8 @@
                             value: incremented,
                             source: "network-hit",
                             counted: true,
-                            namespace,
                             key,
+                            endpointPath,
                         };
                         return lastSnapshot;
                     } catch (error) {
@@ -362,8 +373,8 @@
                     value: currentValue,
                     source: "network-get",
                     counted,
-                    namespace,
                     key,
+                    endpointPath,
                 };
                 return lastSnapshot;
             } catch (error) {
@@ -373,8 +384,8 @@
                     value: cachedValue,
                     source: cachedValue === null ? "unavailable" : "cache",
                     counted,
-                    namespace,
                     key,
+                    endpointPath,
                 };
                 return lastSnapshot;
             }

@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cloudflare Counter Setup - image2cpp</title>
+    <meta name="description" content="Set up first-party visit counting for image2cpp with Cloudflare Pages Functions and D1.">
+    <link rel="canonical" href="https://image2cpp.pages.dev/docs/cloudflare-counter-setup.html">
+    <style>
+        body { font-family: Segoe UI, Arial, sans-serif; max-width: 920px; margin: 2rem auto; padding: 0 1rem; line-height: 1.6; }
+        code, pre { font-family: Consolas, monospace; }
+        pre { background: #101218; color: #e9e9e9; padding: 0.8rem; border-radius: 8px; overflow-x: auto; }
+    </style>
+</head>
+<body>
+    <p><a href="index.html">Docs Home</a> | <a href="../index.html">Open App</a></p>
+    <h1>Cloudflare Visit Counter Setup</h1>
+    <p>This project uses a first-party endpoint at <code>/api/visits</code> implemented in <code>functions/api/visits.js</code>.</p>
+
+    <h2>Why this design</h2>
+    <ul>
+        <li>No third-party random counter API dependency.</li>
+        <li>Counter data is owned by your Cloudflare deployment.</li>
+        <li>D1-backed persistence with cookie-based dedupe for practical uniqueness.</li>
+    </ul>
+
+    <h2>Required Cloudflare configuration</h2>
+    <ol>
+        <li>Create a D1 database in Cloudflare (example: <code>image2cpp-visits</code>).</li>
+        <li>Open Pages project settings and add a D1 binding.</li>
+        <li>Set binding name to <code>VISITS_DB</code>.</li>
+        <li>Deploy the project.</li>
+    </ol>
+
+    <h2>Endpoint behavior</h2>
+    <ul>
+        <li><code>GET /api/visits?op=hit&amp;key=unique-visits-v1</code>: increments when browser is not yet counted.</li>
+        <li><code>GET /api/visits?op=get&amp;key=unique-visits-v1</code>: reads value without increment.</li>
+    </ul>
+
+    <p>On first counted hit, the response sets a cookie marker to reduce duplicate increments from the same browser profile.</p>
+</body>
+</html>

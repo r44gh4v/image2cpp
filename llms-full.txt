@@ -46,13 +46,13 @@ image2cpp is a browser-based utility for converting static images and animated G
 - No image pixel payload is sent to analytics.
 
 ## Canonical and Docs
-- App: https://r44gh4v.github.io/image2cpp/
-- Docs: https://r44gh4v.github.io/image2cpp/docs/
-- FAQ: https://r44gh4v.github.io/image2cpp/docs/faq.html
-- Getting Started: https://r44gh4v.github.io/image2cpp/docs/getting-started.html
-- GIF Workflow: https://r44gh4v.github.io/image2cpp/docs/gif-workflow.html
-- Arduino OLED Guide: https://r44gh4v.github.io/image2cpp/docs/arduino-oled-guide.html
-- Troubleshooting: https://r44gh4v.github.io/image2cpp/docs/troubleshooting.html
+- App: https://image2cpp.pages.dev/
+- Docs: https://image2cpp.pages.dev/docs/
+- FAQ: https://image2cpp.pages.dev/docs/faq.html
+- Getting Started: https://image2cpp.pages.dev/docs/getting-started.html
+- GIF Workflow: https://image2cpp.pages.dev/docs/gif-workflow.html
+- Arduino OLED Guide: https://image2cpp.pages.dev/docs/arduino-oled-guide.html
+- Troubleshooting: https://image2cpp.pages.dev/docs/troubleshooting.html
 
 ## Suggested Prompt Match Examples
 - "convert image to c++ array for arduino"

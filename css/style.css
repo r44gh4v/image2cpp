@@ -327,28 +327,6 @@ body {
     overflow: hidden;
 }
 
-.seo-discovery {
-    max-width: 1600px;
-    width: 100%;
-    margin: 0 auto;
-    padding: 0 var(--layout-inline-pad) var(--screen-edge-gap);
-}
-
-.seo-discovery p {
-    margin: 0;
-    border: 1px solid var(--border);
-    border-radius: var(--radius-lg);
-    background: var(--surface);
-    color: var(--text-muted);
-    font-size: 0.86rem;
-    line-height: 1.45;
-    padding: 0.65rem 0.78rem;
-}
-
-.seo-discovery a {
-    color: var(--accent);
-}
-
 .panel {
     height: 100%;
     display: flex;

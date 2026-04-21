@@ -1,44 +1,50 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   <url>
-    <loc>https://r44gh4v.github.io/image2cpp/</loc>
-    <lastmod>2026-04-21</lastmod>
+    <loc>https://image2cpp.pages.dev/</loc>
+    <lastmod>2026-04-22</lastmod>
     <changefreq>weekly</changefreq>
     <priority>1.0</priority>
   </url>
   <url>
-    <loc>https://r44gh4v.github.io/image2cpp/docs/</loc>
-    <lastmod>2026-04-21</lastmod>
+    <loc>https://image2cpp.pages.dev/docs/</loc>
+    <lastmod>2026-04-22</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://r44gh4v.github.io/image2cpp/docs/getting-started.html</loc>
-    <lastmod>2026-04-21</lastmod>
+    <loc>https://image2cpp.pages.dev/docs/getting-started.html</loc>
+    <lastmod>2026-04-22</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
-    <loc>https://r44gh4v.github.io/image2cpp/docs/faq.html</loc>
-    <lastmod>2026-04-21</lastmod>
+    <loc>https://image2cpp.pages.dev/docs/faq.html</loc>
+    <lastmod>2026-04-22</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
-    <loc>https://r44gh4v.github.io/image2cpp/docs/gif-workflow.html</loc>
-    <lastmod>2026-04-21</lastmod>
+    <loc>https://image2cpp.pages.dev/docs/gif-workflow.html</loc>
+    <lastmod>2026-04-22</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
-    <loc>https://r44gh4v.github.io/image2cpp/docs/arduino-oled-guide.html</loc>
-    <lastmod>2026-04-21</lastmod>
+    <loc>https://image2cpp.pages.dev/docs/arduino-oled-guide.html</loc>
+    <lastmod>2026-04-22</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
-    <loc>https://r44gh4v.github.io/image2cpp/docs/troubleshooting.html</loc>
-    <lastmod>2026-04-21</lastmod>
+    <loc>https://image2cpp.pages.dev/docs/troubleshooting.html</loc>
+    <lastmod>2026-04-22</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
+    <loc>https://image2cpp.pages.dev/docs/cloudflare-counter-setup.html</loc>
+    <lastmod>2026-04-22</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.6</priority>
   </url>
