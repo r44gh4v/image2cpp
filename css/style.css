@@ -357,7 +357,7 @@ body {
     z-index: 30;
 }
 
-.panel > .card:nth-child(2) {
+.panel>.card:nth-child(2) {
     animation-delay: 0.06s;
 }
 
@@ -627,13 +627,13 @@ input[type="range"]:active::-webkit-slider-runnable-track {
     border-color: var(--accent);
 }
 
-.cb-wrap input:checked ~ .cb {
+.cb-wrap input:checked~.cb {
     background: var(--accent);
     border-color: var(--accent);
     transform: scale(1.06);
 }
 
-.cb-wrap input:checked ~ .cb::after {
+.cb-wrap input:checked~.cb::after {
     content: "";
     position: absolute;
     left: 5px;
@@ -1122,6 +1122,7 @@ input[type="range"]:active::-webkit-slider-runnable-track {
     from {
         opacity: 0;
     }
+
     to {
         opacity: 1;
     }
@@ -1132,6 +1133,7 @@ input[type="range"]:active::-webkit-slider-runnable-track {
         opacity: 0;
         transform: translateY(6px) scale(0.99);
     }
+
     to {
         opacity: 1;
         transform: translateY(0) scale(1);
@@ -1143,6 +1145,7 @@ input[type="range"]:active::-webkit-slider-runnable-track {
         opacity: 0;
         transform: translateY(4px) scale(0.94);
     }
+
     to {
         opacity: 1;
         transform: translateY(0) scale(1);
@@ -1153,6 +1156,7 @@ input[type="range"]:active::-webkit-slider-runnable-track {
     from {
         transform: scale(1);
     }
+
     to {
         transform: scale(1.01);
     }
@@ -1353,7 +1357,7 @@ input[type="radio"],
 
     .drop-zone.is-dragover,
     .gif-thumb-wrap,
-    .panel > .card {
+    .panel>.card {
         animation: none !important;
     }
 }

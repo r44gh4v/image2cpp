@@ -96,7 +96,7 @@ const Processor = {
 
         for (let i = 0; i < reader.numFrames(); i++) {
             const frameInfo = reader.frameInfo(i);
-            
+
             if (frameInfo.disposal === 3) {
                 prevPixels = new Uint8ClampedArray(framePixels);
             }
@@ -113,9 +113,9 @@ const Processor = {
                     for (let x = frameInfo.x; x < frameInfo.x + frameInfo.width; x++) {
                         const idx = (y * reader.width + x) * 4;
                         framePixels[idx] = 0;
-                        framePixels[idx+1] = 0;
-                        framePixels[idx+2] = 0;
-                        framePixels[idx+3] = 0;
+                        framePixels[idx + 1] = 0;
+                        framePixels[idx + 2] = 0;
+                        framePixels[idx + 3] = 0;
                     }
                 }
             } else if (disposal === 3 && prevPixels) {
@@ -183,10 +183,10 @@ const Processor = {
             true,
             renderOptions.skipBinary === true,
         );
-        
+
         // Push the colorized pixels back for the Visual Preview
         ctx.putImageData(result.imageData, 0, 0);
-        
+
         return result;
     },
 
@@ -211,7 +211,7 @@ const Processor = {
 
             // If transparent (e.g. padding or transparent PNG background), force its base color to pure white
             if (alpha < 128) {
-                data[i] = data[i+1] = data[i+2] = 255;
+                data[i] = data[i + 1] = data[i + 2] = 255;
             }
 
             // Perceptual Luminance conversion
@@ -224,7 +224,7 @@ const Processor = {
             } else {
                 gray = 255; // Ensure padding strictly stays white for dither step safety 
             }
-            
+
             data[i] = data[i + 1] = data[i + 2] = gray;
         }
 
@@ -252,7 +252,7 @@ const Processor = {
 
             // Standard image2cpp logic assumes black maps to 1 (drawn), white maps to 0 (background).
             let isBlack = data[i] < 128;
-            
+
             // Re-check alpha originally carried forward via bit 3
             let isPadding = data[i + 3] < 128;
 
@@ -272,7 +272,7 @@ const Processor = {
             // Paint visual preview:
             // the `bit === 1` means this pixel is "drawn/active" (so use fgColor)
             let color = bit === 1 ? fgColor : bgColor;
-            data[i] = color[0]; data[i+1] = color[1]; data[i+2] = color[2]; data[i+3] = 255;
+            data[i] = color[0]; data[i + 1] = color[1]; data[i + 2] = color[2]; data[i + 3] = 255;
         }
 
         return { imageData, binaryData };

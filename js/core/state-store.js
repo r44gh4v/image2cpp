@@ -60,7 +60,7 @@
 
         function subscribe(listener) {
             if (typeof listener !== "function") {
-                return () => {};
+                return () => { };
             }
 
             listeners.add(listener);

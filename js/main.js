@@ -219,7 +219,7 @@ const UI = {
         this.syncLayoutMetrics();
 
         if (document.fonts && document.fonts.ready) {
-            document.fonts.ready.then(this.syncLayoutMetrics).catch(() => {});
+            document.fonts.ready.then(this.syncLayoutMetrics).catch(() => { });
         }
 
         window.addEventListener("resize", this.syncLayoutMetrics, { passive: true });
