@@ -1,7 +1,7 @@
 (function initImage2CppVisitCounterService(root) {
     const DEFAULT_ENDPOINT_PATH = "api/visits";
     const DEFAULT_KEY = "unique-visits-v1";
-    const DEFAULT_RETRY_DELAYS_MS = [0, 320, 840];
+    const DEFAULT_RETRY_DELAYS_MS = [0, 400];
     const DEFAULT_REQUEST_TIMEOUT_MS = 4200;
     const DEFAULT_LOCK_TTL_MS = 8000;
     const DEFAULT_LOCK_WAIT_MS = 260;

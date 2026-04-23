@@ -20,6 +20,8 @@ const requiredRootFiles = [
     path.join("docs", "arduino-oled-guide.html"),
     path.join("docs", "troubleshooting.html"),
     path.join("docs", "cloudflare-counter-setup.html"),
+    "favicon.svg",
+    "_headers",
 ];
 
 function assert(condition, message) {
@@ -48,6 +50,8 @@ assert(html.includes('name="twitter:card"'), "Missing Twitter card tag");
 assert(html.includes('application/ld+json'), "Missing JSON-LD schema");
 assert(html.includes('rel="manifest" href="manifest.json"'), "Missing web app manifest link");
 assert(html.includes('window.Image2CppVisitCounterConfig'), "Missing first-party visit counter config");
+assert(html.includes('rel="icon" type="image/svg+xml" href="favicon.svg"'), "Missing SVG favicon link");
+assert(html.includes('property="og:image"'), "Missing og:image meta tag");
 
 assert(
     html.includes('name="google-site-verification" content="I5ZvegZI3e-rPTF0VLgq5SJU88_7BwiUdf4xN8NuYzc"'),
@@ -111,7 +115,7 @@ const requiredScriptsInOrder = [
 
 let lastIndex = -1;
 requiredScriptsInOrder.forEach((script) => {
-    const marker = `src="${script}"`;
+    const marker = `defer src="${script}"`;
     const index = html.indexOf(marker);
     assert(index >= 0, `Missing script tag for ${script}`);
     assert(index > lastIndex, `Script load order is incorrect at ${script}`);

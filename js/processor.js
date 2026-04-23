@@ -2,15 +2,9 @@ function resolveSettingsContract() {
     if (typeof globalThis !== "undefined" && globalThis.Image2CppSettings) {
         return globalThis.Image2CppSettings;
     }
-
     if (typeof module !== "undefined" && module.exports && typeof require === "function") {
-        try {
-            return require("./core/settings.js");
-        } catch (error) {
-            return null;
-        }
+        try { return require("./core/settings.js"); } catch (_) { return null; }
     }
-
     return null;
 }
 

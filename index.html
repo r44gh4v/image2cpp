@@ -22,6 +22,11 @@
     <meta name="twitter:title" content="image2cpp - Image to C++ Byte Array">
     <meta name="twitter:description" content="Browser tool for Arduino and OLED bitmap conversion.">
     <meta name="twitter:url" content="https://image2cpp.pages.dev/">
+    <meta property="og:image" content="https://image2cpp.pages.dev/assets/og-image.png">
+    <meta property="og:image:width" content="1200">
+    <meta property="og:image:height" content="630">
+    <meta name="twitter:image" content="https://image2cpp.pages.dev/assets/og-image.png">
+    <link rel="icon" type="image/svg+xml" href="favicon.svg">
     <link rel="manifest" href="manifest.json">
     <script>
         window.Image2CppAnalyticsConfig = {
@@ -90,8 +95,8 @@
                     id="app-theme-toggle"
                     type="button"
                     class="theme-toggle-btn"
-                    aria-label="App theme mode: System"
-                    title="App theme mode: System"
+                    aria-label="Theme: System"
+                    title="Theme: System"
                 >Theme: System</button>
             </div>
         </div>
@@ -132,9 +137,9 @@
                 <div class="setting-group mt-3">
                     <label>Dimensions (WxH)</label>
                     <div class="size-inputs">
-                        <input type="number" id="canvas-width" value="128" min="1">
+                        <input type="number" id="canvas-width" value="128" min="1" aria-label="Canvas width">
                         <button id="btn-swap-wh" class="icon-btn" title="Swap Width/Height"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="17 11 21 7 17 3"></polyline><line x1="21" y1="7" x2="9" y2="7"></line><polyline points="7 21 3 17 7 13"></polyline><line x1="3" y1="17" x2="15" y2="17"></line></svg></button>
-                        <input type="number" id="canvas-height" value="64" min="1">
+                        <input type="number" id="canvas-height" value="64" min="1" aria-label="Canvas height">
                     </div>
                 </div>
                 <div class="setting-group mt-2">
@@ -160,7 +165,7 @@
                         <label><svg class="tune-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path fill="currentColor" d="M12 22C17.5228 22 22 17.5228 22 12C22 6.47715 17.5228 2 12 2V22Z"/></svg> Contrast</label>
                         <span id="contrast-val" class="badge interactive" title="Click to Reset">0</span>
                     </div>
-                    <input type="range" id="setting-contrast" min="-255" max="255" value="0">
+                    <input type="range" id="setting-contrast" min="-255" max="255" value="0" aria-label="Contrast">
                 </div>
 
                 <div class="setting-group mt-2">
@@ -168,7 +173,7 @@
                         <label><svg class="tune-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2"/><path d="M12 20v2"/><path d="M4.93 4.93l1.41 1.41"/><path d="M17.66 17.66l1.41 1.41"/><path d="M2 12h2"/><path d="M20 12h2"/><path d="M6.34 17.66l-1.41 1.41"/><path d="M19.07 4.93l-1.41 1.41"/></svg> Threshold / Brightness</label>
                         <span id="threshold-val" class="badge interactive" title="Click to Reset">128</span>
                     </div>
-                    <input type="range" id="setting-threshold" min="0" max="255" value="128">
+                    <input type="range" id="setting-threshold" min="0" max="255" value="128" aria-label="Threshold">
                 </div>
                 
                 <div class="checkbox-row mt-3">
@@ -243,22 +248,22 @@
         </section>
     </main>
 
-    <script src="js/vendor/omggif.js"></script>
-    <script src="js/processor.js"></script>
-    <script src="js/generator.js"></script>
-    <script src="js/core/constants.js"></script>
-    <script src="js/core/settings.js"></script>
-    <script src="js/core/frame-manager.js"></script>
-    <script src="js/core/url-manager.js"></script>
-    <script src="js/core/state-store.js"></script>
-    <script src="js/core/ui-theme-service.js"></script>
-    <script src="js/core/analytics-service.js"></script>
-    <script src="js/core/visit-counter-service.js"></script>
-    <script src="js/core/preview-service.js"></script>
-    <script src="js/core/gif-workflow-service.js"></script>
-    <script src="js/core/file-workflow-service.js"></script>
-    <script src="js/ui/custom-select-controller.js"></script>
-    <script src="js/main.js"></script>
+    <script defer src="js/vendor/omggif.js"></script>
+    <script defer src="js/processor.js"></script>
+    <script defer src="js/generator.js"></script>
+    <script defer src="js/core/constants.js"></script>
+    <script defer src="js/core/settings.js"></script>
+    <script defer src="js/core/frame-manager.js"></script>
+    <script defer src="js/core/url-manager.js"></script>
+    <script defer src="js/core/state-store.js"></script>
+    <script defer src="js/core/ui-theme-service.js"></script>
+    <script defer src="js/core/analytics-service.js"></script>
+    <script defer src="js/core/visit-counter-service.js"></script>
+    <script defer src="js/core/preview-service.js"></script>
+    <script defer src="js/core/gif-workflow-service.js"></script>
+    <script defer src="js/core/file-workflow-service.js"></script>
+    <script defer src="js/ui/custom-select-controller.js"></script>
+    <script defer src="js/main.js"></script>
 </body>
 </html>
 

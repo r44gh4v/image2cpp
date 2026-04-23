@@ -476,7 +476,7 @@ const UI = {
         this.appThemeToggle.dataset.themeMode = mode;
         this.appThemeToggle.dataset.themeResolved = resolvedTheme;
         this.appThemeToggle.title = `${buttonText} (${resolvedTheme})`;
-        this.appThemeToggle.setAttribute("aria-label", `App theme mode: ${modeLabel} (${resolvedTheme})`);
+        this.appThemeToggle.setAttribute("aria-label", `Theme: ${modeLabel} (${resolvedTheme})`);
     },
 
     syncVisitCount(snapshot) {
