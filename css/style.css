@@ -1279,53 +1279,210 @@ input[type="radio"],
 }
 
 @media (max-width: 768px) {
+    :root {
+        --workspace-gap: 0.75rem;
+        --screen-edge-gap: 0.5rem;
+    }
+
     .app-header {
         padding: var(--screen-edge-gap) var(--layout-inline-pad) 0;
     }
 
     .header-inner {
-        gap: 0.58rem;
+        flex-wrap: wrap;
+        gap: 0.45rem;
         padding: 0.46rem 0.62rem;
-        border-radius: var(--radius-xl);
+        border-radius: var(--radius-lg);
+    }
+
+    .brand {
+        flex-shrink: 0;
     }
 
     .tagline {
         display: none;
     }
 
+    .header-controls {
+        margin-left: auto;
+        gap: 0.35rem;
+    }
+
     .theme-toggle-btn {
         font-size: 11.25px;
-        padding: 0.22rem 0.52rem;
-        min-height: 27px;
-        min-width: 104px;
+        padding: 0.28rem 0.52rem;
+        min-height: 36px;
+        min-width: 100px;
     }
 
     .visit-count {
         font-size: 11px;
-        padding: 0.22rem 0.52rem;
-        min-height: 27px;
+        padding: 0.28rem 0.52rem;
+        min-height: 36px;
     }
 
+    /* --- Workspace: natural column flow (1→2→3→4→5) --- */
     .workspace {
         display: flex;
-        flex-direction: column-reverse;
+        flex-direction: column;
+        overflow: visible;
     }
 
+    .panel {
+        width: 100%;
+        height: auto;
+        overflow: visible;
+    }
+
+    /* --- Result panel: inline, not sticky --- */
     .panel-result {
-        position: sticky;
-        top: calc(var(--app-header-height) + var(--screen-edge-gap));
-        z-index: 10;
-        overflow-y: auto;
-        overflow-x: visible;
-        height: min(60vh, calc(100vh - var(--app-header-height) - (var(--screen-edge-gap) * 2)));
-        height: min(60dvh, calc(100dvh - var(--app-header-height) - (var(--screen-edge-gap) * 2)));
-        min-height: 320px;
-        max-height: calc(100vh - var(--app-header-height) - (var(--screen-edge-gap) * 2));
-        max-height: calc(100dvh - var(--app-header-height) - (var(--screen-edge-gap) * 2));
+        position: relative;
+        top: auto;
+        z-index: auto;
+        overflow: visible;
+        height: auto;
+        min-height: unset;
+        max-height: none;
     }
 
+    .card.flex-col {
+        height: auto;
+    }
+
+    /* Preview area: shorter on mobile */
+    .preview-area {
+        height: 200px;
+        margin-bottom: 0.75rem;
+    }
+
+    /* Code output: fixed height instead of flex-grow */
     .code-area {
         min-height: unset;
+    }
+
+    #code-output {
+        min-height: 160px;
+        max-height: 260px;
+        flex-grow: 0;
+    }
+
+    /* --- Touch-friendly controls --- */
+    .preset-chips {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+
+    .preset-btn {
+        padding: 0.55rem 0.2rem;
+        font-size: 12px;
+        min-height: 40px;
+    }
+
+    .action-btn {
+        min-height: 44px;
+        padding: 0.5rem 0.6rem;
+        font-size: 12.5px;
+    }
+
+    .icon-btn {
+        width: 36px;
+        height: 36px;
+    }
+
+    input[type="number"],
+    input[type="text"] {
+        min-height: 40px;
+        font-size: 14px;
+    }
+
+    .custom-select,
+    .custom-select-trigger {
+        min-height: 40px;
+        font-size: 14px;
+    }
+
+    /* Larger slider thumb for touch */
+    input[type="range"]::-webkit-slider-thumb {
+        width: 24px;
+        height: 24px;
+        margin-top: -10px;
+    }
+
+    input[type="range"]::-moz-range-thumb {
+        width: 24px;
+        height: 24px;
+    }
+
+    input[type="range"]::-webkit-slider-runnable-track {
+        height: 5px;
+    }
+
+    /* Drop zone: larger tap target */
+    .drop-zone {
+        padding: 2rem 1rem;
+    }
+
+    /* Code toolbar: allow wrapping */
+    .code-toolbar {
+        flex-wrap: wrap;
+        gap: 0.4rem;
+        padding: 0.5rem 0.65rem;
+    }
+
+    /* GIF timeline scrolls horizontally */
+    .gif-frames-timeline {
+        min-height: 70px;
+    }
+
+    /* Card spacing */
+    .card {
+        padding: 0.85rem;
+    }
+
+    .card-header h2 {
+        font-size: 0.9rem;
+    }
+
+    label {
+        font-size: 12.5px;
+    }
+}
+
+/* --- Very small phones (< 480px) --- */
+@media (max-width: 480px) {
+    :root {
+        --screen-edge-gap: 0.35rem;
+    }
+
+    .header-inner {
+        padding: 0.4rem 0.5rem;
+    }
+
+    .brand h1 {
+        font-size: 0.92rem;
+    }
+
+    .preset-chips {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .preview-area {
+        height: 170px;
+    }
+
+    #code-output {
+        min-height: 140px;
+        max-height: 220px;
+        font-size: 11.5px;
+    }
+
+    .action-row {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 0.4rem;
+    }
+
+    .code-actions .action-btn {
+        font-size: 11.5px;
+        padding: 0.4rem 0.5rem;
     }
 }
 
