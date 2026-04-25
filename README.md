@@ -6,12 +6,9 @@ for use in with microcontrollers and displays in electronics projects
 
 Main : https://image2cpp.pages.dev/
 
-Mirror : https://r44gh4v.github.io/image2cpp/
-
 ## SEO and Canonical Setup
 
 - Canonical domain: https://image2cpp.pages.dev/
-- Mirror domain is supported for availability, but canonical metadata points to the main domain.
 
 ## Platform-Independent Hosting Notes
 
