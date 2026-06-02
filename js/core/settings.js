@@ -15,7 +15,7 @@
         flipV: false,
         rotate: 0,
         outputFormat: "arduino",
-        drawMode: "vertical",
+        drawMode: "horizontal",
         varName: "bitmap",
         theme: "oled-white",
     };
@@ -32,7 +32,7 @@
         scale: ["fit", "stretch", "original"],
         processingMethod: ["threshold"],
         outputFormat: ["arduino", "plain"],
-        drawMode: ["vertical", "horizontal"],
+        drawMode: ["horizontal", "vertical"],
         theme: ["oled-white", "oled-blue", "oled-yellow", "lcd-green"],
     };
 
