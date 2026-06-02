@@ -50,7 +50,7 @@ try {
     {
         assert.strictEqual(service.isSupportedImage({ type: "image/png" }), true);
         assert.strictEqual(service.isSupportedImage({ type: "text/plain" }), false);
-        assert.strictEqual(service.getSafeVariableName("9-logo final.png", "bitmap"), "_9_logo_final");
+        assert.strictEqual(service.getSafeVariableName("9-logo final.png", "byte array"), "_9_logo_final");
     }
 
     {

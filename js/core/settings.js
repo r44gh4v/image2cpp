@@ -16,7 +16,7 @@
         rotate: 0,
         outputFormat: "arduino",
         drawMode: "horizontal",
-        varName: "bitmap",
+        varName: "byte array",
         theme: "oled-white",
     };
 

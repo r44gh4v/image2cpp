@@ -31,7 +31,7 @@ function normalizeProcessingSettings(settings) {
         rotate: Number.isFinite(Number(source.rotate)) ? Number(source.rotate) : 0,
         outputFormat: source.outputFormat || "arduino",
         drawMode: source.drawMode || "vertical",
-        varName: source.varName || "bitmap",
+        varName: source.varName || "byte array",
         theme: source.theme || "oled-white",
     };
 }

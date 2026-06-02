@@ -8,7 +8,7 @@ const settings = require("../js/core/settings.js");
 
 {
     const result = settings.sanitizeVarName("***");
-    assert.strictEqual(result, "bitmap");
+    assert.strictEqual(result, "byte array");
 }
 
 {

@@ -436,7 +436,7 @@ const UI = {
 
             const link = document.createElement("a");
             link.href = downloadUrl;
-            link.download = `${this.optVarName.value || "bitmap"}.h`;
+            link.download = `${this.optVarName.value || "byte array"}.h`;
             link.click();
 
             trackAnalytics("trackExport", "download", {
@@ -634,7 +634,7 @@ const App = {
         }
 
         const safeVarName = FileWorkflowService && typeof FileWorkflowService.getSafeVariableName === "function"
-            ? FileWorkflowService.getSafeVariableName(file.name, "bitmap")
+            ? FileWorkflowService.getSafeVariableName(file.name, "byte array")
             : (file.name || "")
                 .split(".")
                 .slice(0, -1)
@@ -727,7 +727,7 @@ const App = {
             rotate: AppState.tRotate,
             outputFormat: UI.optFormat.value,
             drawMode: UI.optDrawMode.value,
-            varName: UI.optVarName.value || "bitmap",
+            varName: UI.optVarName.value || "byte array",
             theme: UI.previewTheme.value,
         };
 
@@ -748,7 +748,7 @@ const App = {
                 rotate: AppState.tRotate,
                 outputFormat: UI.optFormat.value,
                 drawMode: UI.optDrawMode.value,
-                varName: UI.optVarName.value || "bitmap",
+                varName: UI.optVarName.value || "byte array",
                 theme: UI.previewTheme.value,
             };
 

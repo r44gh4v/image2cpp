@@ -51,14 +51,14 @@
 
     <h2>Minimal Arduino Example</h2>
     <pre><code>#include &lt;Adafruit_SSD1306.h&gt;
-#include "bitmap.h"
+#include "byte array.h"
 
 Adafruit_SSD1306 display(128, 64, &amp;Wire, -1);
 
 void setup() {
   display.begin(SSD1306_SWITCHCAPVCC, 0x3C);
   display.clearDisplay();
-  display.drawBitmap(0, 0, bitmap, 128, 64, WHITE);
+  display.drawbyte array(0, 0, byte array, 128, 64, WHITE);
   display.display();
 }
 </code></pre>

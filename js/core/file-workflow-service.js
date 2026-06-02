@@ -1,6 +1,6 @@
 (function initImage2CppFileWorkflowService(root) {
     function defaultSanitizeVarName(rawName, fallback) {
-        const safeFallback = typeof fallback === "string" && fallback.length > 0 ? fallback : "bitmap";
+        const safeFallback = typeof fallback === "string" && fallback.length > 0 ? fallback : "byte array";
         const source = typeof rawName === "string" ? rawName.trim() : "";
         const replaced = source.replace(/[^a-zA-Z0-9_]/g, "_");
         const prefixed = replaced.replace(/^[0-9]/, "_$&");
@@ -28,7 +28,7 @@
         }
 
         function getSafeVariableName(fileName, fallback) {
-            const safeFallback = typeof fallback === "string" && fallback.length > 0 ? fallback : "bitmap";
+            const safeFallback = typeof fallback === "string" && fallback.length > 0 ? fallback : "byte array";
             const name = typeof fileName === "string" ? fileName : "";
             const base = name.includes(".") ? name.split(".").slice(0, -1).join(".") : name;
 

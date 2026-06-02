@@ -32,7 +32,7 @@ function normalizeGeneratorSettings(settings) {
         rotate: Number.isFinite(Number(source.rotate)) ? Number(source.rotate) : 0,
         outputFormat: source.outputFormat || "arduino",
         drawMode: source.drawMode || "vertical",
-        varName: source.varName || "bitmap",
+        varName: source.varName || "byte array",
         theme: source.theme || "oled-white",
     };
 }
@@ -69,7 +69,8 @@ const Generator = {
 
             // Add array of pointers
             let strType = safeSettings.outputFormat === 'arduino' ? 'const unsigned char* const PROGMEM' : 'const unsigned char* const';
-            out += `${strType} ${safeSettings.varName}_frames[] = {\n  `;
+            // out += `${strType} ${safeSettings.varName}_frames[] = {\n  `;
+            out += `${strType} gif_frames[] = {\n  `;
             out += allNames.join(", ") + "\n};\n";
 
             return out;
