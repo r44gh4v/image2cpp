@@ -66,8 +66,10 @@ const Generator = require("../js/generator.js");
             width: 8, height: 1, drawMode: "horizontal", outputFormat: "arduino",
             pixelFormat: "mono1", varName: "solo",
         });
-        assert.ok(output.includes("const int soloallArray_LEN = 1;"));
-        assert.ok(output.includes("const unsigned char* soloallArray[1] = {"));
+        assert.ok(output.includes("const int solo_width = 8;"));
+        assert.ok(output.includes("const int solo_height = 1;"));
+        assert.ok(output.includes("const int solo_all_array_len = 1;"));
+        assert.ok(output.includes("const unsigned char* solo_all_array[1] = {"));
         assert.ok(output.includes("\tsolo\n};"));
     } finally {
         if (typeof originalDocument === "undefined") delete global.document; else global.document = originalDocument;
