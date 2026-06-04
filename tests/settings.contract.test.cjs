@@ -3,7 +3,7 @@ const settings = require("../js/core/settings.js");
 
 {
     const result = settings.sanitizeVarName(" 9-my icon ");
-    assert.strictEqual(result, "9_my_icon".replace(/^9/, "_9"));
+    assert.strictEqual(result, "_9_my_icon");
 }
 
 {
@@ -28,32 +28,50 @@ const settings = require("../js/core/settings.js");
     assert.strictEqual(normalized.threshold, 255);
     assert.strictEqual(normalized.contrast, -255);
     assert.strictEqual(normalized.rotate, 270);
-    assert.strictEqual(normalized.processingMethod, "threshold");
-    assert.strictEqual(normalized.dither, false);
-    assert.strictEqual(normalized.drawMode, "vertical");
+    assert.strictEqual(normalized.pixelFormat, "mono1");
+    assert.strictEqual(normalized.dither, "binary");
+    assert.strictEqual(normalized.bitSwap, false);
+    assert.strictEqual(normalized.drawMode, "horizontal");
     assert.strictEqual(normalized.outputFormat, "plain");
     assert.strictEqual(normalized.varName, "_1_logo");
+    assert.strictEqual(normalized.processingMethod, undefined);
 }
 
 {
-    const normalized = settings.normalizeSettings({ dither: "false" });
-
-    assert.strictEqual(normalized.processingMethod, "threshold");
-    assert.strictEqual(normalized.dither, false);
+    const normalized = settings.normalizeSettings({ dither: "atkinson" });
+    assert.strictEqual(normalized.dither, "atkinson");
 }
 
 {
-    const normalized = settings.normalizeSettings({ dither: "true" });
-
-    assert.strictEqual(normalized.processingMethod, "threshold");
-    assert.strictEqual(normalized.dither, false);
+    const normalized = settings.normalizeSettings({ dither: "nope" });
+    assert.strictEqual(normalized.dither, "binary");
 }
 
 {
-    const normalized = settings.normalizeSettings({ processingMethod: "atkinson" });
+    // Non-mono pixel formats force horizontal orientation and ignore bitSwap for color.
+    const f565 = settings.normalizeSettings({ pixelFormat: "rgb565", drawMode: "vertical", bitSwap: true });
+    assert.strictEqual(f565.pixelFormat, "rgb565");
+    assert.strictEqual(f565.drawMode, "horizontal");
+    assert.strictEqual(f565.bitSwap, false);
 
-    assert.strictEqual(normalized.processingMethod, "threshold");
-    assert.strictEqual(normalized.dither, false);
+    const f888 = settings.normalizeSettings({ pixelFormat: "rgb888", drawMode: "vertical" });
+    assert.strictEqual(f888.pixelFormat, "rgb888");
+    assert.strictEqual(f888.drawMode, "horizontal");
+
+    const alpha = settings.normalizeSettings({ pixelFormat: "alpha", drawMode: "vertical", bitSwap: "true" });
+    assert.strictEqual(alpha.pixelFormat, "alpha");
+    assert.strictEqual(alpha.drawMode, "horizontal");
+    assert.strictEqual(alpha.bitSwap, true);
+
+    const badFormat = settings.normalizeSettings({ pixelFormat: "wat" });
+    assert.strictEqual(badFormat.pixelFormat, "mono1");
+}
+
+{
+    // mono1 keeps vertical when explicitly chosen and honours bitSwap.
+    const mono = settings.normalizeSettings({ pixelFormat: "mono1", drawMode: "vertical", bitSwap: "1" });
+    assert.strictEqual(mono.drawMode, "vertical");
+    assert.strictEqual(mono.bitSwap, true);
 }
 
 {

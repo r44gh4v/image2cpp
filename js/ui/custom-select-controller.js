@@ -20,6 +20,9 @@
     }
 
     function openCustomSelect(wrapper) {
+        if (wrapper.classList.contains("is-disabled")) {
+            return;
+        }
         closeCustomSelects(wrapper);
         wrapper.classList.add("open");
         const trigger = wrapper.querySelector(".custom-select-trigger");
@@ -126,6 +129,9 @@
 
         trigger.addEventListener("click", (event) => {
             event.stopPropagation();
+            if (wrapper.classList.contains("is-disabled")) {
+                return;
+            }
             if (wrapper.classList.contains("open")) {
                 closeCustomSelect(wrapper);
             } else {
@@ -136,6 +142,9 @@
         trigger.addEventListener("keydown", (event) => {
             const lastIndex = select.options.length - 1;
             if (lastIndex < 0) {
+                return;
+            }
+            if (wrapper.classList.contains("is-disabled")) {
                 return;
             }
 

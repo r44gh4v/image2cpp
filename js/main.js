@@ -197,6 +197,16 @@ const UI = {
 
         this.optFormat = document.getElementById("output-format");
         this.optDrawMode = document.getElementById("draw-mode");
+        this.optPixelFormat = document.getElementById("pixel-format");
+        this.optDither = document.getElementById("dither-mode");
+        this.bitSwapCheck = document.getElementById("setting-bitswap");
+        this.bitSwapWrap = document.getElementById("wrap-bitswap");
+        this.ditherGroup = document.getElementById("group-dither");
+
+        // Start with bit-swap off (after the element is cached).
+        if (this.bitSwapCheck) {
+            this.bitSwapCheck.checked = false;
+        }
         this.optVarName = document.getElementById("var-name");
         this.previewTheme = document.getElementById("preview-theme");
         this.appThemeToggle = document.getElementById("app-theme-toggle");
@@ -338,11 +348,18 @@ const UI = {
             this.invertBgCheck,
             this.optFormat,
             this.optDrawMode,
+            this.optPixelFormat,
+            this.optDither,
+            this.bitSwapCheck,
             this.previewTheme,
         ];
 
         triggerElements.forEach((element) => {
             element.addEventListener("change", () => {
+                if (element === this.optPixelFormat) {
+                    App.reconcileControls();
+                }
+
                 if (AppState.isUpdatingSliders) {
                     return;
                 }
@@ -370,6 +387,9 @@ const UI = {
         };
 
         const resetSlider = (input, valueElement, defaultValue) => {
+            if (input.disabled) {
+                return;
+            }
             input.value = String(defaultValue);
             valueElement.textContent = String(defaultValue);
             input.focus();
@@ -563,6 +583,7 @@ const App = {
         if (CustomSelectController && typeof CustomSelectController.init === "function") {
             CustomSelectController.init();
         }
+        this.reconcileControls();
 
         if (UiThemeService && typeof UiThemeService.subscribe === "function") {
             UiThemeService.subscribe((snapshot) => {
@@ -719,7 +740,9 @@ const App = {
             scale: UI.scaleSelect.value,
             contrast: UI.contrastInput.value,
             threshold: UI.thresholdInput.value,
-            processingMethod: "threshold",
+            dither: UI.optDither ? UI.optDither.value : "binary",
+            pixelFormat: UI.optPixelFormat ? UI.optPixelFormat.value : "mono1",
+            bitSwap: UI.bitSwapCheck ? UI.bitSwapCheck.checked : false,
             invert: UI.invertCheck.checked,
             invertBg: UI.invertBgCheck.checked,
             flipH: AppState.tFlipH,
@@ -739,8 +762,9 @@ const App = {
                 scale: UI.scaleSelect.value,
                 contrast: parseInt(UI.contrastInput.value, 10),
                 threshold: parseInt(UI.thresholdInput.value, 10),
-                processingMethod: "threshold",
-                dither: false,
+                dither: UI.optDither ? UI.optDither.value : "binary",
+                pixelFormat: UI.optPixelFormat ? UI.optPixelFormat.value : "mono1",
+                bitSwap: UI.bitSwapCheck ? UI.bitSwapCheck.checked : false,
                 invert: UI.invertCheck.checked,
                 invertBg: UI.invertBgCheck.checked,
                 flipH: AppState.tFlipH,
@@ -954,6 +978,68 @@ const App = {
         };
 
         renderNextFrame(AppState.currentFrame);
+    },
+
+    setControlDisabled(element, disabled, wrapTarget) {
+        if (!element) {
+            return;
+        }
+        if (element.classList && element.classList.contains("custom-select")) {
+            element.disabled = disabled;
+            const wrapper = element.nextElementSibling;
+            if (wrapper && wrapper.classList.contains("custom-select-wrapper")) {
+                wrapper.classList.toggle("is-disabled", disabled);
+                const trigger = wrapper.querySelector(".custom-select-trigger");
+                if (trigger) {
+                    trigger.setAttribute("aria-disabled", disabled ? "true" : "false");
+                    trigger.tabIndex = disabled ? -1 : 0;
+                }
+            }
+            return;
+        }
+        element.disabled = disabled;
+        const target = wrapTarget || (element.closest ? element.closest(".setting-group") : null);
+        if (target) {
+            target.classList.toggle("is-disabled", disabled);
+        }
+    },
+
+    setCustomSelectValue(select, value) {
+        if (!select) {
+            return;
+        }
+        const index = Array.from(select.options).findIndex((option) => option.value === value);
+        if (index < 0) {
+            return;
+        }
+        const wrapper = select.nextElementSibling;
+        if (
+            CustomSelectController
+            && typeof CustomSelectController.setIndex === "function"
+            && wrapper
+            && wrapper.classList.contains("custom-select-wrapper")
+        ) {
+            CustomSelectController.setIndex(select, wrapper, index, false);
+        } else {
+            select.selectedIndex = index;
+        }
+    },
+
+    reconcileControls() {
+        const format = UI.optPixelFormat ? UI.optPixelFormat.value : "mono1";
+        const isMono = format === "mono1";
+        const isAlpha = format === "alpha";
+        const isColor = format === "rgb565" || format === "rgb888";
+
+        if (!isMono && UI.optDrawMode && UI.optDrawMode.value !== "horizontal") {
+            this.setCustomSelectValue(UI.optDrawMode, "horizontal");
+        }
+
+        this.setControlDisabled(UI.optDrawMode, !isMono);
+        this.setControlDisabled(UI.optDither, !isMono, UI.ditherGroup);
+        this.setControlDisabled(UI.thresholdInput, isColor, UI.thresholdInput.closest(".setting-group"));
+        this.setControlDisabled(UI.contrastInput, isAlpha, UI.contrastInput.closest(".setting-group"));
+        this.setControlDisabled(UI.bitSwapCheck, isColor, UI.bitSwapWrap);
     },
 
     updatePreview(isLive = false) {

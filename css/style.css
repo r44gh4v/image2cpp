@@ -1518,3 +1518,13 @@ input[type="radio"],
         animation: none !important;
     }
 }
+.custom-select-wrapper.is-disabled {
+    opacity: 0.45;
+    pointer-events: none;
+}
+
+.setting-group.is-disabled,
+.checkbox-row .cb-wrap.is-disabled {
+    opacity: 0.45;
+    pointer-events: none;
+}

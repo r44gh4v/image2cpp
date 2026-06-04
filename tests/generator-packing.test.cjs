@@ -13,7 +13,7 @@ const Generator = require("../js/generator.js");
     const binaryData = Uint8Array.from([1, 0, 1, 0, 1, 0, 1, 0]);
     const output = Generator.generateFrame(binaryData, settings, "");
 
-    assert.ok(output.includes("const unsigned char img_horizontal[]"));
+    assert.ok(output.includes("const unsigned char img_horizontal [] = {"));
     assert.ok(output.includes("0xAA"));
 }
 
@@ -29,6 +29,6 @@ const Generator = require("../js/generator.js");
     const binaryData = Uint8Array.from([1, 0, 1, 0, 1, 0, 1, 0]);
     const output = Generator.generateFrame(binaryData, settings, "");
 
-    assert.ok(output.includes("const unsigned char PROGMEM img_vertical[]"));
+    assert.ok(output.includes("const unsigned char img_vertical [] PROGMEM = {"));
     assert.ok(output.includes("0x55"));
 }

@@ -15,8 +15,8 @@ const Generator = require("../js/generator.js");
         height: "8",
     });
 
-    assert.ok(output.includes("const unsigned char _9_bad[]"));
-    assert.ok(output.includes("0x01, 0x01, 0x01, 0x01"));
+    assert.ok(output.includes("const unsigned char _9_bad [] = {"));
+    assert.ok(output.includes("0xFF, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00"));
 }
 
 {

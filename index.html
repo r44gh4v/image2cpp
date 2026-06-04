@@ -108,11 +108,11 @@
                 <div class="setting-group">
                     <label>Presets</label>
                     <div class="preset-chips">
-                        <button class="preset-btn" data-preset="128x64">128×64</button>
-                        <button class="preset-btn" data-preset="128x32">128×32</button>
-                        <button class="preset-btn" data-preset="96x64">96×64</button>
-                        <button class="preset-btn" data-preset="84x48">84×48</button>
                         <button class="preset-btn" data-preset="64x64">64×64</button>
+                        <button class="preset-btn" data-preset="84x48">84×48</button>
+                        <button class="preset-btn" data-preset="96x64">96×64</button>
+                        <button class="preset-btn" data-preset="128x32">128×32</button>
+                        <button class="preset-btn" data-preset="128x64">128×64</button>
                         <button class="preset-btn" data-preset="200x200">200×200</button>
                         <button class="preset-btn" data-preset="250x122">250×122</button>
                         <button class="preset-btn" data-preset="400x300">400×300</button>
@@ -159,7 +159,16 @@
                     </div>
                     <input type="range" id="setting-threshold" min="0" max="255" value="128" aria-label="Threshold">
                 </div>
-                
+                <div class="setting-group mt-2" id="group-dither">
+                    <label>Dithering</label>
+                    <select id="dither-mode" class="custom-select">
+                        <option value="binary">Binary (threshold)</option>
+                        <option value="bayer">Bayer (ordered)</option>
+                        <option value="floydsteinberg">Floyd-Steinberg</option>
+                        <option value="atkinson">Atkinson</option>
+                    </select>
+                </div>
+
                 <div class="checkbox-row mt-3">
                     <label class="cb-wrap"><input type="checkbox" id="setting-invert"><span class="cb"></span> Invert</label>
                     <label class="cb-wrap" id="wrap-invert-bg"><input type="checkbox" id="setting-invert-bg"><span class="cb"></span> Invert BG</label>
@@ -179,9 +188,19 @@
                     <h2>4. Code Tune</h2>
                 </div>
                 <div class="setting-group">
+                    <label>Orientation</label>
                     <select id="draw-mode" class="custom-select">
-                        <option value="horizontal">Horizontal (Adafruit GFX)</option>
-                        <option value="vertical">Vertical</option>
+                        <option value="horizontal">Horizontal - 1 bit per pixel</option>
+                        <option value="vertical">Vertical - 1 bit per pixel</option>
+                    </select>
+                </div>
+                <div class="setting-group mt-2">
+                    <label>Pixel format</label>
+                    <select id="pixel-format" class="custom-select">
+                        <option value="mono1">1 bit mono</option>
+                        <option value="rgb565">RGB565 (2 bytes/px)</option>
+                        <option value="rgb888">RGB888 (3 bytes/px)</option>
+                        <option value="alpha">Alpha map (1 bit/px)</option>
                     </select>
                 </div>
                 <div class="setting-group mt-2">
@@ -192,6 +211,9 @@
                 </div>
                 <div class="setting-group mt-2">
                     <input type="text" id="var-name" value="byte array" placeholder="Variable Name">
+                </div>
+                <div class="checkbox-row mt-3">
+                    <label class="cb-wrap" id="wrap-bitswap"><input type="checkbox" id="setting-bitswap"><span class="cb"></span> Swap bits (u8g2)</label>
                 </div>
             </div>
         </section>

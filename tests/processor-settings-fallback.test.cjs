@@ -34,10 +34,10 @@ const Processor = require("../js/processor.js");
         ]),
     });
 
+    // WYSIWYG: opaque black -> off (0); transparent white -> padding off (0) unless invertBg.
     const normal = Processor.applyFiltersAndColorMap(makeImageData(), 2, 1, {
         threshold: 128,
         contrast: 0,
-        processingMethod: "threshold",
         invert: false,
         invertBg: false,
         theme: "oled-white",
@@ -46,14 +46,22 @@ const Processor = require("../js/processor.js");
     const invertedBgOnly = Processor.applyFiltersAndColorMap(makeImageData(), 2, 1, {
         threshold: 128,
         contrast: 0,
-        processingMethod: "threshold",
         invert: false,
         invertBg: true,
         theme: "oled-white",
     });
 
-    assert.deepStrictEqual(Array.from(normal.binaryData), [1, 0]);
-    assert.deepStrictEqual(Array.from(invertedBgOnly.binaryData), [1, 1]);
+    const invertedFgOnly = Processor.applyFiltersAndColorMap(makeImageData(), 2, 1, {
+        threshold: 128,
+        contrast: 0,
+        invert: true,
+        invertBg: false,
+        theme: "oled-white",
+    });
+
+    assert.deepStrictEqual(Array.from(normal.binaryData), [0, 0]);
+    assert.deepStrictEqual(Array.from(invertedBgOnly.binaryData), [0, 1]);
+    assert.deepStrictEqual(Array.from(invertedFgOnly.binaryData), [1, 0]);
 }
 
 {

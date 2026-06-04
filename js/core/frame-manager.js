@@ -11,8 +11,6 @@
         return {
             contrast: Number.isFinite(Number(source.contrast)) ? Number(source.contrast) : 0,
             threshold: Number.isFinite(Number(source.threshold)) ? Number(source.threshold) : 128,
-            processingMethod: "threshold",
-            dither: false,
             invert: Boolean(source.invert),
             invertBg: source.invertBg === true,
         };
@@ -48,13 +46,6 @@
 
         const incoming = uiTuning || {};
         const merged = Object.assign({}, target.tuning, incoming);
-
-        if (
-            Object.prototype.hasOwnProperty.call(incoming, "dither")
-            && !Object.prototype.hasOwnProperty.call(incoming, "processingMethod")
-        ) {
-            delete merged.processingMethod;
-        }
 
         target.tuning = normalizeTuning(merged);
         return target.tuning;

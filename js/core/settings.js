@@ -7,8 +7,8 @@
         scale: "fit",
         contrast: 0,
         threshold: 128,
-        processingMethod: "threshold",
-        dither: false,
+        dither: "binary",
+        pixelFormat: "mono1",
         invert: false,
         invertBg: false,
         flipH: false,
@@ -16,6 +16,7 @@
         rotate: 0,
         outputFormat: "arduino",
         drawMode: "horizontal",
+        bitSwap: false,
         varName: "byte array",
         theme: "oled-white",
     };
@@ -30,7 +31,8 @@
 
     const allowedValues = constants.ALLOWED_VALUES || {
         scale: ["fit", "stretch", "original"],
-        processingMethod: ["threshold"],
+        dither: ["binary", "bayer", "floydsteinberg", "atkinson"],
+        pixelFormat: ["mono1", "rgb565", "rgb888", "alpha"],
         outputFormat: ["arduino", "plain"],
         drawMode: ["horizontal", "vertical"],
         theme: ["oled-white", "oled-blue", "oled-yellow", "lcd-green"],
@@ -84,10 +86,6 @@
         return fallback;
     }
 
-    function normalizeProcessingMethod(value) {
-        return oneOf(value, allowedValues.processingMethod, defaultSettings.processingMethod);
-    }
-
     function normalizeRotate(value) {
         const step = limits.rotateStep || 90;
         const raw = toInteger(value, defaultSettings.rotate || 0);
@@ -109,7 +107,6 @@
 
     function normalizeFrameTuning(rawTuning) {
         const source = rawTuning || {};
-        const processingMethod = normalizeProcessingMethod(source.processingMethod);
 
         return {
             contrast: clampInteger(
@@ -124,8 +121,6 @@
                 limits.threshold.max,
                 defaultSettings.threshold,
             ),
-            processingMethod,
-            dither: false,
             invert: toBoolean(source.invert, defaultSettings.invert),
             invertBg: toBoolean(source.invertBg, defaultSettings.invertBg),
         };
@@ -135,21 +130,32 @@
         const source = rawSettings || {};
         const tuning = normalizeFrameTuning(source);
 
+        const pixelFormat = oneOf(source.pixelFormat, allowedValues.pixelFormat, defaultSettings.pixelFormat);
+        let drawMode = oneOf(source.drawMode, allowedValues.drawMode, defaultSettings.drawMode);
+        if (pixelFormat !== "mono1") {
+            drawMode = "horizontal";
+        }
+        const supportsBitSwap = pixelFormat === "mono1" || pixelFormat === "alpha";
+        const bitSwap = supportsBitSwap
+            ? toBoolean(source.bitSwap, defaultSettings.bitSwap)
+            : false;
+
         return {
             width: clampInteger(source.width, limits.width.min, limits.width.max, defaultSettings.width),
             height: clampInteger(source.height, limits.height.min, limits.height.max, defaultSettings.height),
             scale: oneOf(source.scale, allowedValues.scale, defaultSettings.scale),
             contrast: tuning.contrast,
             threshold: tuning.threshold,
-            processingMethod: tuning.processingMethod,
-            dither: tuning.dither,
+            dither: oneOf(source.dither, allowedValues.dither, defaultSettings.dither),
+            pixelFormat: pixelFormat,
             invert: tuning.invert,
             invertBg: tuning.invertBg,
             flipH: toBoolean(source.flipH, defaultSettings.flipH),
             flipV: toBoolean(source.flipV, defaultSettings.flipV),
             rotate: normalizeRotate(source.rotate),
             outputFormat: oneOf(source.outputFormat, allowedValues.outputFormat, defaultSettings.outputFormat),
-            drawMode: oneOf(source.drawMode, allowedValues.drawMode, defaultSettings.drawMode),
+            drawMode: drawMode,
+            bitSwap: bitSwap,
             varName: sanitizeVarName(source.varName, defaultSettings.varName),
             theme: oneOf(source.theme, allowedValues.theme, defaultSettings.theme),
         };

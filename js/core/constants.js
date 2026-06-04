@@ -5,15 +5,16 @@
         scale: "fit",
         contrast: 0,
         threshold: 128,
-        processingMethod: "threshold",
-        dither: false,
+        dither: "binary",
+        pixelFormat: "mono1",
         invert: false,
         invertBg: false,
         flipH: false,
         flipV: false,
         rotate: 0,
         outputFormat: "arduino",
-        drawMode: "vertical",
+        drawMode: "horizontal",
+        bitSwap: false,
         varName: "byte array",
         theme: "oled-white",
     };
@@ -28,9 +29,10 @@
 
     const ALLOWED_VALUES = {
         scale: ["fit", "stretch", "original"],
-        processingMethod: ["threshold"],
+        dither: ["binary", "bayer", "floydsteinberg", "atkinson"],
+        pixelFormat: ["mono1", "rgb565", "rgb888", "alpha"],
         outputFormat: ["arduino", "plain"],
-        drawMode: ["vertical", "horizontal"],
+        drawMode: ["horizontal", "vertical"],
         theme: ["oled-white", "oled-blue", "oled-yellow", "lcd-green"],
     };
 

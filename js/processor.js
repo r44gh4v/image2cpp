@@ -22,18 +22,184 @@ function normalizeProcessingSettings(settings) {
         scale: source.scale || "fit",
         contrast: Number.isFinite(Number(source.contrast)) ? Number(source.contrast) : 0,
         threshold: Number.isFinite(Number(source.threshold)) ? Number(source.threshold) : 128,
-        processingMethod: "threshold",
-        dither: false,
+        dither: source.dither || "binary",
+        pixelFormat: source.pixelFormat || "mono1",
         invert: Boolean(source.invert),
         invertBg: source.invertBg === true,
         flipH: Boolean(source.flipH),
         flipV: Boolean(source.flipV),
         rotate: Number.isFinite(Number(source.rotate)) ? Number(source.rotate) : 0,
         outputFormat: source.outputFormat || "arduino",
-        drawMode: source.drawMode || "vertical",
+        drawMode: source.drawMode || "horizontal",
+        bitSwap: Boolean(source.bitSwap),
         varName: source.varName || "byte array",
         theme: source.theme || "oled-white",
     };
+}
+
+function getThemeColors(theme) {
+    let fg = [255, 255, 255];
+    let bg = [0, 0, 0];
+    if (theme === "oled-blue") fg = [0, 50, 255];
+    if (theme === "oled-yellow") fg = [255, 215, 0];
+    if (theme === "lcd-green") { fg = [0, 0, 0]; bg = [135, 175, 50]; }
+    return { fg: fg, bg: bg };
+}
+
+function contrastFactor(contrast) {
+    const c = contrast || 0;
+    return (259 * (c + 255)) / (255 * (259 - c));
+}
+
+// Operates on the R channel (assumed to hold the contrast-adjusted grayscale),
+// reducing each pixel to 0 or 255, then mirrors R into G/B for the preview.
+function applyDithering(data, width, threshold, method) {
+    const len = data.length;
+    if (method === "bayer") {
+        const bayer = [
+            [15, 135, 45, 165],
+            [195, 75, 225, 105],
+            [60, 180, 30, 150],
+            [240, 120, 210, 90],
+        ];
+        for (let i = 0; i < len; i += 4) {
+            const x = (i / 4) % width;
+            const y = Math.floor((i / 4) / width);
+            const map = Math.floor((data[i] + bayer[x % 4][y % 4]) / 2);
+            data[i] = map < threshold ? 0 : 255;
+        }
+    } else if (method === "floydsteinberg") {
+        for (let i = 0; i < len; i += 4) {
+            const np = data[i] < threshold ? 0 : 255;
+            const err = Math.floor((data[i] - np) / 16);
+            data[i] = np;
+            data[i + 4] += err * 7;
+            data[i + 4 * width - 4] += err * 3;
+            data[i + 4 * width] += err * 5;
+            data[i + 4 * width + 4] += err;
+        }
+    } else if (method === "atkinson") {
+        for (let i = 0; i < len; i += 4) {
+            const np = data[i] < threshold ? 0 : 255;
+            const err = Math.floor((data[i] - np) / 8);
+            data[i] = np;
+            data[i + 4] += err;
+            data[i + 8] += err;
+            data[i + 4 * width - 4] += err;
+            data[i + 4 * width] += err;
+            data[i + 4 * width + 4] += err;
+            data[i + 8 * width] += err;
+        }
+    } else {
+        for (let i = 0; i < len; i += 4) {
+            data[i] = data[i] < threshold ? 0 : 255;
+        }
+    }
+    for (let i = 0; i < len; i += 4) {
+        data[i + 1] = data[i + 2] = data[i];
+    }
+}
+
+function buildMonoMap(imageData, width, height, safe, build, fg, bg) {
+    const data = imageData.data;
+    const factor = contrastFactor(safe.contrast);
+    const threshold = safe.threshold;
+    const invert = safe.invert;
+    const invertBg = safe.invertBg;
+
+    // Pass 1: grayscale + contrast (padding forced white, alpha left intact).
+    for (let i = 0; i < data.length; i += 4) {
+        if (data[i + 3] < 128) {
+            data[i] = data[i + 1] = data[i + 2] = 255;
+        } else {
+            let gray = 0.299 * data[i] + 0.587 * data[i + 1] + 0.114 * data[i + 2];
+            gray = factor * (gray - 128) + 128;
+            if (gray < 0) gray = 0; else if (gray > 255) gray = 255;
+            data[i] = data[i + 1] = data[i + 2] = gray;
+        }
+    }
+
+    // Pass 2: dithering reduces the R channel to 0/255.
+    applyDithering(data, width, threshold, safe.dither);
+
+    // Pass 3: bits (bright -> lit) + colorize preview.
+    const binaryData = build ? new Uint8Array(width * height) : null;
+    for (let i = 0; i < data.length; i += 4) {
+        const pIdx = i / 4;
+        let bit;
+        if (data[i + 3] < 128) {
+            bit = invertBg ? 1 : 0;
+        } else {
+            bit = data[i] >= 128 ? 1 : 0;
+            if (invert) bit = bit === 1 ? 0 : 1;
+        }
+        if (build) binaryData[pIdx] = bit;
+        const color = bit === 1 ? fg : bg;
+        data[i] = color[0]; data[i + 1] = color[1]; data[i + 2] = color[2]; data[i + 3] = 255;
+    }
+
+    return { imageData: imageData, binaryData: binaryData, rgb565Data: null, rgb888Data: null };
+}
+
+function buildAlphaMap(imageData, width, height, safe, build, fg, bg) {
+    const data = imageData.data;
+    const threshold = safe.threshold;
+    const invert = safe.invert;
+    const binaryData = build ? new Uint8Array(width * height) : null;
+
+    for (let i = 0; i < data.length; i += 4) {
+        const pIdx = i / 4;
+        let bit = data[i + 3] > threshold ? 1 : 0;
+        if (invert) bit = bit === 1 ? 0 : 1;
+        if (build) binaryData[pIdx] = bit;
+        const color = bit === 1 ? fg : bg;
+        data[i] = color[0]; data[i + 1] = color[1]; data[i + 2] = color[2]; data[i + 3] = 255;
+    }
+
+    return { imageData: imageData, binaryData: binaryData, rgb565Data: null, rgb888Data: null };
+}
+
+function buildColorMap(imageData, width, height, safe, build, is565) {
+    const data = imageData.data;
+    const factor = contrastFactor(safe.contrast);
+    const invert = safe.invert;
+    const rgb565Data = (build && is565) ? new Uint16Array(width * height) : null;
+    const rgb888Data = (build && !is565) ? new Uint32Array(width * height) : null;
+
+    for (let i = 0; i < data.length; i += 4) {
+        const pIdx = i / 4;
+        let r;
+        let g;
+        let b;
+        if (data[i + 3] < 128) {
+            r = g = b = 255; // transparent -> white background
+        } else {
+            r = factor * (data[i] - 128) + 128;
+            g = factor * (data[i + 1] - 128) + 128;
+            b = factor * (data[i + 2] - 128) + 128;
+            r = r < 0 ? 0 : (r > 255 ? 255 : r);
+            g = g < 0 ? 0 : (g > 255 ? 255 : g);
+            b = b < 0 ? 0 : (b > 255 ? 255 : b);
+        }
+        r = Math.round(r); g = Math.round(g); b = Math.round(b);
+        if (invert) { r = 255 - r; g = 255 - g; b = 255 - b; }
+
+        let pr;
+        let pg;
+        let pb;
+        if (is565) {
+            const packed = ((r & 0xF8) << 8) | ((g & 0xFC) << 3) | ((b & 0xF8) >> 3);
+            if (build) rgb565Data[pIdx] = packed;
+            pr = r & 0xF8; pg = g & 0xFC; pb = b & 0xF8;
+        } else {
+            const packed = ((r & 0xFF) << 16) | ((g & 0xFF) << 8) | (b & 0xFF);
+            if (build) rgb888Data[pIdx] = packed >>> 0;
+            pr = r; pg = g; pb = b;
+        }
+        data[i] = pr; data[i + 1] = pg; data[i + 2] = pb; data[i + 3] = 255;
+    }
+
+    return { imageData: imageData, binaryData: null, rgb565Data: rgb565Data, rgb888Data: rgb888Data };
 }
 
 // core image manipulation using canvas API
@@ -100,7 +266,6 @@ const Processor = {
             const imgData = new ImageData(new Uint8ClampedArray(framePixels), reader.width, reader.height);
             this.gifFrames.push({ imgData, delay: frameInfo.delay });
 
-            // Handle disposal for the NEXT frame
             const disposal = frameInfo.disposal;
             if (disposal === 2) {
                 for (let y = frameInfo.y; y < frameInfo.y + frameInfo.height; y++) {
@@ -178,98 +343,26 @@ const Processor = {
             renderOptions.skipBinary === true,
         );
 
-        // Push the colorized pixels back for the Visual Preview
         ctx.putImageData(result.imageData, 0, 0);
 
         return result;
     },
 
     applyFiltersAndColorMap(imageData, width, height, settings, isNormalized, skipBinary) {
-        const safeSettings = isNormalized === true
+        const safe = isNormalized === true
             ? settings
             : normalizeProcessingSettings(settings);
-        const shouldBuildBinary = skipBinary !== true;
+        const build = skipBinary !== true;
+        const colors = getThemeColors(safe.theme);
+        const format = safe.pixelFormat;
 
-        const data = imageData.data;
-        const threshold = safeSettings.threshold;
-        const invert = safeSettings.invert;
-        const invertBg = safeSettings.invertBg;
-        const contrast = safeSettings.contrast || 0;
-
-        // Calculate contrast factor
-        const factor = (259 * (contrast + 255)) / (255 * (259 - contrast));
-
-        // Pass 1: Convert to Grayscale and adjust contrast
-        for (let i = 0; i < data.length; i += 4) {
-            const alpha = data[i + 3];
-
-            // If transparent (e.g. padding or transparent PNG background), force its base color to pure white
-            if (alpha < 128) {
-                data[i] = data[i + 1] = data[i + 2] = 255;
-            }
-
-            // Perceptual Luminance conversion
-            let gray = 0.299 * data[i] + 0.587 * data[i + 1] + 0.114 * data[i + 2];
-
-            // Only apply adjustments to actual image pixels
-            if (alpha >= 128) {
-                gray = factor * (gray - 128) + 128;
-                if (gray < 0) gray = 0; else if (gray > 255) gray = 255;
-            } else {
-                gray = 255; // Ensure padding strictly stays white for dither step safety 
-            }
-
-            data[i] = data[i + 1] = data[i + 2] = gray;
+        if (format === "rgb565" || format === "rgb888") {
+            return buildColorMap(imageData, width, height, safe, build, format === "rgb565");
         }
-
-        // Pass 2: Clean thresholding (no dithering) for dot-free output.
-        for (let i = 0; i < data.length; i += 4) {
-            const b = data[i];
-            const whiteOrBlack = b >= threshold ? 255 : 0;
-            data[i] = data[i + 1] = data[i + 2] = whiteOrBlack;
+        if (format === "alpha") {
+            return buildAlphaMap(imageData, width, height, safe, build, colors.fg, colors.bg);
         }
-
-        // Pass 3: Map to Binary Data (1s and 0s) and colorize for Live Preview
-        const binaryData = shouldBuildBinary
-            ? new Uint8Array(width * height)
-            : null;
-
-        let fgColor = [255, 255, 255]; // standard OLED white
-        let bgColor = [0, 0, 0];       // standard black background
-
-        if (safeSettings.theme === 'oled-blue') fgColor = [0, 50, 255];
-        if (safeSettings.theme === 'oled-yellow') fgColor = [255, 215, 0];
-        if (safeSettings.theme === 'lcd-green') { fgColor = [0, 0, 0]; bgColor = [135, 175, 50]; }
-
-        for (let i = 0; i < data.length; i += 4) {
-            let pIdx = i / 4;
-
-            // Standard image2cpp logic assumes black maps to 1 (drawn), white maps to 0 (background).
-            let isBlack = data[i] < 128;
-
-            // Re-check alpha originally carried forward via bit 3
-            let isPadding = data[i + 3] < 128;
-
-            let bit = isBlack ? 1 : 0;
-
-            // Invert controls image pixels; invertBg controls transparent/padding pixels.
-            // This keeps both toggles independent while still allowing them to be combined.
-            const shouldInvertPixel = isPadding ? invertBg : invert;
-            if (shouldInvertPixel) {
-                bit = bit === 1 ? 0 : 1;
-            }
-
-            if (shouldBuildBinary) {
-                binaryData[pIdx] = bit;
-            }
-
-            // Paint visual preview:
-            // the `bit === 1` means this pixel is "drawn/active" (so use fgColor)
-            let color = bit === 1 ? fgColor : bgColor;
-            data[i] = color[0]; data[i + 1] = color[1]; data[i + 2] = color[2]; data[i + 3] = 255;
-        }
-
-        return { imageData, binaryData };
+        return buildMonoMap(imageData, width, height, safe, build, colors.fg, colors.bg);
     }
 };
 
