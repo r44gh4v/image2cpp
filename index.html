@@ -3,22 +3,22 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="description" content="image2cpp converts images and GIFs to C++ byte arrays for Arduino, OLED, LCD, and embedded display projects. Export PROGMEM-ready byte array data in your browser.">
-    <meta name="keywords" content="image2cpp,image to c++ array,gif to byte array,arduino byte array converter,oled byte array converter,u8g2,adafruit gfx">
+    <meta name="description" content="image2cpp converts images and GIFs to C byte arrays for Arduino, OLED, LCD, and embedded display projects. Export PROGMEM-ready byte array data in your browser.">
+    <meta name="keywords" content="image2cpp,image to C array,gif to byte array,arduino byte array converter,oled byte array converter,u8g2,adafruit gfx">
     <meta name="robots" content="index,follow,max-snippet:-1,max-image-preview:large,max-video-preview:-1">
     <meta name="theme-color" content="#f5c542">
     <meta name="author" content="image2cpp">
     <link rel="canonical" href="https://image2cpp.pages.dev/">
     <!-- <link rel="alternate" href="https://r44gh4v.github.io/image2cpp/"> -->
-    <title>image2cpp - Image & GIF to C++ Byte Array</title>
-    <meta property="og:title" content="image2cpp - Image and GIF to C++ Byte Array Converter">
-    <meta property="og:description" content="Convert image and GIF sources to C++ byte arrays for Arduino and embedded displays.">
+    <title>image2cpp - Image & GIF to C Byte Array</title>
+    <meta property="og:title" content="image2cpp - Image and GIF to C Byte Array Converter">
+    <meta property="og:description" content="Convert image and GIF sources to C byte arrays for Arduino and embedded displays.">
     <meta property="og:type" content="website">
     <meta property="og:url" content="https://image2cpp.pages.dev/">
     <meta property="og:site_name" content="image2cpp">
     <meta property="og:locale" content="en_US">
     <meta name="twitter:card" content="summary">
-    <meta name="twitter:title" content="image2cpp - Image to C++ Byte Array">
+    <meta name="twitter:title" content="image2cpp - Image to C Byte Array">
     <meta name="twitter:description" content="Browser tool for Arduino and OLED byte array conversion.">
     <meta name="twitter:url" content="https://image2cpp.pages.dev/">
     <meta property="og:image" content="https://image2cpp.pages.dev/assets/og-image.png">
@@ -42,14 +42,14 @@
             "applicationCategory": "DeveloperApplication",
             "operatingSystem": "Web Browser",
             "url": "https://image2cpp.pages.dev/",
-            "description": "Convert images and animated GIFs to C++ byte arrays for Arduino, OLED, LCD, and embedded display projects.",
+            "description": "Convert images and animated GIFs to C byte arrays for Arduino, OLED, LCD, and embedded display projects.",
             "offers": {
                 "@type": "Offer",
                 "price": "0",
                 "priceCurrency": "USD"
             },
             "featureList": [
-                "Image and GIF to C++ byte array conversion",
+                "Image and GIF to C byte array conversion",
                 "Arduino PROGMEM export",
                 "Vertical and horizontal packing modes",
                 "Contrast and threshold controls",
@@ -134,6 +134,9 @@
                         <option value="original">Original Size</option>
                     </select>
                 </div>
+                <div class="checkbox-row mt-2">
+                    <label class="cb-wrap" id="wrap-smooth"><input type="checkbox" id="setting-smooth" checked><span class="cb"></span> Smooth scaling</label>
+                </div>
             </div>
         </section>
 
@@ -206,7 +209,7 @@
                 <div class="setting-group mt-2">
                     <select id="output-format" class="custom-select">
                         <option value="arduino">Arduino PROGMEM</option>
-                        <option value="plain">Plain C/C++ Array</option>
+                        <option value="plain">Plain C/C Array</option>
                     </select>
                 </div>
                 <div class="setting-group mt-2">
@@ -242,7 +245,7 @@
 
                 <div class="code-area">
                     <div class="code-toolbar">
-                        <span class="code-title">C++ Byte Array</span>
+                        <span class="code-title">C Byte Array</span>
                         <div class="code-actions">
                             <button class="action-btn highlight" id="btn-copy" title="Copy to Clipboard"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg> Copy</button>
                             <button class="action-btn outline" id="btn-download" title="Download .h File"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg> .h</button>

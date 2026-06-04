@@ -32,6 +32,7 @@ function normalizeProcessingSettings(settings) {
         outputFormat: source.outputFormat || "arduino",
         drawMode: source.drawMode || "horizontal",
         bitSwap: Boolean(source.bitSwap),
+        smoothScaling: source.smoothScaling !== false,
         varName: source.varName || "byte array",
         theme: source.theme || "oled-white",
     };
@@ -289,6 +290,11 @@ const Processor = {
         const renderOptions = options || {};
 
         const ctx = canvas.getContext('2d', { willReadFrequently: true });
+        // Smooth (bilinear) scaling matches javl/image2cpp: it preserves tonal
+        // gradients when downscaling so the dithering methods can recover detail.
+        // Turn it off ("Smooth scaling" unchecked) for pixel-perfect
+        // nearest-neighbour output of crisp 1-bit art.
+        ctx.imageSmoothingEnabled = safeSettings.smoothScaling !== false;
         ctx.clearRect(0, 0, canvas.width, canvas.height);
 
         ctx.save();
@@ -318,6 +324,12 @@ const Processor = {
             dw = sw; dh = sh;
             dx = -dw / 2; dy = -dh / 2;
         }
+
+        // Snap to whole pixels so the draw never lands on a sub-pixel boundary.
+        dw = Math.round(dw);
+        dh = Math.round(dh);
+        dx = -Math.round(dw / 2);
+        dy = -Math.round(dh / 2);
 
         const hasImageDataCtor = typeof ImageData !== 'undefined';
         if (hasImageDataCtor && sourceImgOrData instanceof ImageData) {

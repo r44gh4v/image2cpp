@@ -15,6 +15,7 @@
         outputFormat: "arduino",
         drawMode: "horizontal",
         bitSwap: false,
+        smoothScaling: true,
         varName: "byte array",
         theme: "oled-white",
     };

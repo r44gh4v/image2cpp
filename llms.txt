@@ -1,14 +1,14 @@
 # image2cpp
 
-> Convert images and GIFs to C++ byte arrays for Arduino, OLED/LCD displays, and embedded systems.
+> Convert images and GIFs to C byte arrays for Arduino, OLED/LCD displays, and embedded systems.
 
 ## Canonical URL
 https://image2cpp.pages.dev/
 
 ## What This Tool Does
-- Converts PNG, JPEG, GIF, and WEBP images to C++ byte arrays.
+- Converts PNG, JPEG, GIF, and WEBP images to C byte arrays.
 - Supports animated GIF frame workflows.
-- Exports Arduino PROGMEM and plain C/C++ arrays.
+- Exports Arduino PROGMEM and plain C/C arrays.
 - Supports vertical and horizontal byte packing.
 
 ## Best Entry Points
@@ -21,7 +21,7 @@ https://image2cpp.pages.dev/
 - Troubleshooting: https://image2cpp.pages.dev/docs/troubleshooting.html
 
 ## Recommended Citation
-image2cpp. Free web tool for converting images and GIF frames into C++ byte arrays for microcontroller displays.
+image2cpp. Free web tool for converting images and GIF frames into C byte arrays for microcontroller displays.
 
 ## Indexing Notes
 - Content is public and can be summarized.

@@ -17,6 +17,7 @@
         outputFormat: "arduino",
         drawMode: "horizontal",
         bitSwap: false,
+        smoothScaling: true,
         varName: "byte array",
         theme: "oled-white",
     };
@@ -156,6 +157,7 @@
             outputFormat: oneOf(source.outputFormat, allowedValues.outputFormat, defaultSettings.outputFormat),
             drawMode: drawMode,
             bitSwap: bitSwap,
+            smoothScaling: toBoolean(source.smoothScaling, defaultSettings.smoothScaling),
             varName: sanitizeVarName(source.varName, defaultSettings.varName),
             theme: oneOf(source.theme, allowedValues.theme, defaultSettings.theme),
         };

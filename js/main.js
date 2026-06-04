@@ -182,6 +182,7 @@ const UI = {
         this.canvasHeight = document.getElementById("canvas-height");
         this.btnSwapWh = document.getElementById("btn-swap-wh");
         this.scaleSelect = document.getElementById("setting-scale");
+        this.smoothScaleCheck = document.getElementById("setting-smooth");
 
         this.contrastInput = document.getElementById("setting-contrast");
         this.contrastVal = document.getElementById("contrast-val");
@@ -344,6 +345,7 @@ const UI = {
             this.canvasWidth,
             this.canvasHeight,
             this.scaleSelect,
+            this.smoothScaleCheck,
             this.invertCheck,
             this.invertBgCheck,
             this.optFormat,
@@ -738,6 +740,7 @@ const App = {
             width: UI.canvasWidth.value,
             height: UI.canvasHeight.value,
             scale: UI.scaleSelect.value,
+            smoothScaling: UI.smoothScaleCheck ? UI.smoothScaleCheck.checked : true,
             contrast: UI.contrastInput.value,
             threshold: UI.thresholdInput.value,
             dither: UI.optDither ? UI.optDither.value : "binary",
@@ -760,6 +763,7 @@ const App = {
                 width: parseInt(UI.canvasWidth.value, 10) || 128,
                 height: parseInt(UI.canvasHeight.value, 10) || 64,
                 scale: UI.scaleSelect.value,
+                smoothScaling: UI.smoothScaleCheck ? UI.smoothScaleCheck.checked : true,
                 contrast: parseInt(UI.contrastInput.value, 10),
                 threshold: parseInt(UI.thresholdInput.value, 10),
                 dither: UI.optDither ? UI.optDither.value : "binary",

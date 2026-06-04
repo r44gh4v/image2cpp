@@ -1,4 +1,4 @@
-// Converting pixel/colour arrays to C/C++ output (javl-style) per pixel format.
+// Converting pixel/colour arrays to C/C output (javl-style) per pixel format.
 function resolveSettingsContract() {
     if (typeof globalThis !== "undefined" && globalThis.Image2CppSettings) {
         return globalThis.Image2CppSettings;

@@ -2,7 +2,7 @@
   "name": "image2cpp",
   "version": "1.0.0",
   "private": true,
-  "description": "Image and GIF to C++ byte array converter",
+  "description": "Image and GIF to C byte array converter",
   "scripts": {
     "check:syntax": "node scripts/check-syntax.cjs",
     "check:ui-smoke": "node scripts/smoke-ui-static.cjs",
