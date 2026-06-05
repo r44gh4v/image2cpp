@@ -1,16 +1,17 @@
 /**
  * Image2Cpp Main Controller
- * Slim ES-module controller wiring real implementations together.
+ * Slim ES-module controller wires implementations together
  */
 
-import { normalizeSettings, mergeFrameTuning, sanitizeVarName } from "./core/settings.js";
-import { Processor } from "./imaging/processor.js";
+import { normalizeSettings, mergeFrameTuning } from "./core/settings.js";
+import { processFrame } from "./imaging/processor.js";
 import { generate } from "./codegen/generator.js";
 import * as CustomSelect from "./ui/custom-select.js";
 import { createThemeController } from "./ui/theme.js";
 import * as PreviewView from "./ui/preview-view.js";
 import * as Timeline from "./ui/timeline-view.js";
 import * as Frames from "./workflow/frames.js";
+import { ingestFiles, safeVarNameFromFiles } from "./workflow/ingest.js";
 import { createObjectUrl, revokeObjectUrl, revokeAll } from "./workflow/object-urls.js";
 
 const PREVIEW_RENDER_OPTIONS = { skipBinary: true };
@@ -160,7 +161,7 @@ const UI = {
         });
 
         this.previewCanvas.addEventListener("click", () => {
-            if (Processor.sourceIsGif) {
+            if (Frames.isMultiFrame()) {
                 state.isPaused = !state.isPaused;
                 doFastUpdate();
             }
@@ -211,13 +212,13 @@ const UI = {
         this.dropZone.addEventListener("drop", (event) => {
             const transfer = event.dataTransfer;
             if (transfer && transfer.files && transfer.files.length > 0) {
-                App.handleFile(transfer.files[0]);
+                App.handleFiles(transfer.files);
             }
         });
 
         this.fileInput.addEventListener("change", (event) => {
             if (event.target.files && event.target.files.length > 0) {
-                App.handleFile(event.target.files[0]);
+                App.handleFiles(event.target.files);
                 event.target.value = "";
             }
         });
@@ -407,74 +408,27 @@ const App = {
         this.updatePreview();
     },
 
-    handleFile(file) {
+    async handleFiles(fileList) {
         clearScheduledPreview();
-
-        const isSupportedImage = Boolean(file && typeof file.type === "string" && file.type.startsWith("image/"));
-
-        if (!isSupportedImage) {
-            alert("Only images are supported.");
+        const files = Array.from(fileList || []);
+        if (files.length === 0) return;
+        if (!files.every((f) => f && typeof f.type === "string" && f.type.startsWith("image/"))) {
+            alert("Only image files are supported.");
             return;
         }
-
-        revokeAll();
-
-        const safeVarName = sanitizeVarName(
-            (file.name || "").split(".").slice(0, -1).join("."),
-            "byte array",
-        );
-        if (safeVarName) {
-            UI.optVarName.value = safeVarName;
+        const safeName = safeVarNameFromFiles(files);
+        if (safeName) UI.optVarName.value = safeName;
+        Object.assign(state, { currentFrame: 0, isPaused: false });
+        if (state.gifTimer) { clearTimeout(state.gifTimer); state.gifTimer = null; }
+        try {
+            const frames = await ingestFiles(files);
+            if (frames.length === 0) { alert("Unable to load these files."); return; }
+            Frames.setFrames(frames);
+            this.updatePreview();
+        } catch (err) {
+            console.error(err);
+            alert("Unable to load these files.");
         }
-
-        Object.assign(state, {
-            currentFrame: 0,
-            isPaused: false,
-        });
-
-        if (state.gifTimer) {
-            clearTimeout(state.gifTimer);
-            state.gifTimer = null;
-        }
-
-        if (file.type !== "image/gif") {
-            const objectUrl = createObjectUrl(file);
-            if (!objectUrl) {
-                return;
-            }
-
-            Processor.loadImage(objectUrl, () => {
-                revokeObjectUrl(objectUrl);
-                this.updatePreview();
-            });
-            return;
-        }
-
-        if (typeof FileReader !== "function") {
-            alert("FileReader is not available in this environment.");
-            return;
-        }
-
-        const reader = new FileReader();
-        reader.onload = (event) => {
-            setTimeout(() => {
-                try {
-                    Processor.loadGif(event.target.result, () => this.updatePreview());
-                } catch (error) {
-                    console.error("GIF parsing failed. Falling back to static preview.", error);
-                    const fallbackUrl = createObjectUrl(file);
-                    if (!fallbackUrl) {
-                        return;
-                    }
-
-                    Processor.loadImage(fallbackUrl, () => {
-                        revokeObjectUrl(fallbackUrl);
-                        this.updatePreview();
-                    });
-                }
-            }, 10);
-        };
-        reader.readAsArrayBuffer(file);
     },
 
     getUiTuningSnapshot() {
@@ -510,26 +464,23 @@ const App = {
 
         const base = normalizeSettings(baseRaw);
 
-        if (
-            Processor.sourceIsGif &&
-            frameIndex >= 0 &&
-            Processor.gifFrames[frameIndex] &&
-            Processor.gifFrames[frameIndex].tuning
-        ) {
-            return mergeFrameTuning(base, Processor.gifFrames[frameIndex].tuning);
+        const frame = frameIndex >= 0 ? Frames.getFrames()[frameIndex] : null;
+        if (Frames.isMultiFrame() && frame && frame.tuning) {
+            return mergeFrameTuning(base, frame.tuning);
         }
 
         return base;
     },
 
     applyFrameSlidersToUI(index) {
-        if (!Processor.sourceIsGif || !Processor.gifFrames[index]) {
+        const frame = Frames.getFrames()[index];
+        if (!Frames.isMultiFrame() || !frame) {
             return;
         }
 
         state.isUpdatingSliders = true;
 
-        const tuning = Frames.readFrameTuning(Processor.gifFrames[index]);
+        const tuning = Frames.readFrameTuning(frame);
 
         UI.contrastInput.value = tuning.contrast !== undefined ? tuning.contrast : 0;
         UI.contrastVal.textContent = UI.contrastInput.value;
@@ -553,7 +504,7 @@ const App = {
         PreviewView.syncPreviewSurface(
             UI.previewCanvas,
             UI.timeline,
-            Processor.sourceIsGif,
+            Frames.isMultiFrame(),
             settings.width,
             settings.height,
         );
@@ -562,10 +513,10 @@ const App = {
     renderSingleThumbnail(index) {
         Timeline.renderSingleThumbnail({
             timeline: UI.timeline,
-            frames: Processor.gifFrames,
+            frames: Frames.getFrames(),
             index,
             getSettings: (frameIndex) => this.getSettings(frameIndex),
-            renderToCanvas: (canvas, source, settings) => Processor.processFrame(
+            renderToCanvas: (canvas, source, settings) => processFrame(
                 canvas,
                 source,
                 settings,
@@ -583,9 +534,8 @@ const App = {
         Timeline.startPlayback({
             appState: state,
             setStateValue: (key, value) => { state[key] = value; },
-            processor: Processor,
             getSettings: (frameIndex) => this.getSettings(frameIndex),
-            renderToCanvas: (canvas, source, settings) => Processor.processFrame(
+            renderToCanvas: (canvas, source, settings) => processFrame(
                 canvas,
                 source,
                 settings,
@@ -660,7 +610,7 @@ const App = {
         }
         state.isRendering = true;
         try {
-            if (prefersReducedMotion() && Processor.sourceIsGif && !state.isPaused) {
+            if (prefersReducedMotion() && Frames.isMultiFrame() && !state.isPaused) {
                 state.isPaused = true;
             }
 
@@ -670,7 +620,7 @@ const App = {
 
             UI.previewInfo.textContent = `${currentSettings.width} × ${currentSettings.height}`;
 
-            if (!Processor.sourceImage) {
+            if (!Frames.hasFrames()) {
                 return;
             }
 
@@ -678,11 +628,11 @@ const App = {
 
             this.syncPreviewSurface(currentSettings);
 
-            if (Processor.sourceIsGif) {
+            if (Frames.isMultiFrame()) {
                 const uiTuning = this.getUiTuningSnapshot();
 
                 Timeline.applyUiTuning({
-                    frames: Processor.gifFrames,
+                    frames: Frames.getFrames(),
                     isPaused: state.isPaused,
                     currentFrame: state.currentFrame,
                     uiTuning,
@@ -699,12 +649,12 @@ const App = {
                 if (needsRebuild) {
                     Timeline.rebuildTimeline({
                         timeline: UI.timeline,
-                        frames: Processor.gifFrames,
+                        frames: Frames.getFrames(),
                         isPaused: state.isPaused,
                         currentFrame: state.currentFrame,
                         currentSettings,
                         getSettings: (frameIndex) => this.getSettings(frameIndex),
-                        renderToCanvas: (canvas, source, settings) => Processor.processFrame(
+                        renderToCanvas: (canvas, source, settings) => processFrame(
                             canvas,
                             source,
                             settings,
@@ -721,9 +671,9 @@ const App = {
                                 currentFrame: index,
                             });
                             this.applyFrameSlidersToUI(index);
-                            Processor.processFrame(
+                            processFrame(
                                 UI.previewCanvas,
-                                frame.imgData,
+                                frame.source,
                                 this.getSettings(index),
                                 PREVIEW_RENDER_OPTIONS,
                             );
@@ -736,12 +686,12 @@ const App = {
                 } else {
                     Timeline.refreshTimelineThumbnails({
                         timeline: UI.timeline,
-                        frames: Processor.gifFrames,
+                        frames: Frames.getFrames(),
                         isPaused: state.isPaused,
                         currentFrame: state.currentFrame,
                         isLive,
                         getSettings: (frameIndex) => this.getSettings(frameIndex),
-                        renderToCanvas: (canvas, source, settings) => Processor.processFrame(
+                        renderToCanvas: (canvas, source, settings) => processFrame(
                             canvas,
                             source,
                             settings,
@@ -754,9 +704,9 @@ const App = {
                 }
 
                 if (state.isPaused) {
-                    Processor.processFrame(
+                    processFrame(
                         UI.previewCanvas,
-                        Processor.gifFrames[state.currentFrame].imgData,
+                        Frames.getFrames()[state.currentFrame].source,
                         this.getSettings(state.currentFrame),
                         PREVIEW_RENDER_OPTIONS,
                     );
@@ -772,7 +722,7 @@ const App = {
                     lastScale: currentSettings.scale,
                 });
             } else {
-                Processor.processFrame(UI.previewCanvas, Processor.sourceImage, currentSettings, PREVIEW_RENDER_OPTIONS);
+                processFrame(UI.previewCanvas, Frames.getFrames()[0].source, currentSettings, PREVIEW_RENDER_OPTIONS);
             }
 
             if (!isLive) {

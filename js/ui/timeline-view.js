@@ -1,4 +1,5 @@
 import { applyUiTuningToFrame, applyUiTuningToFrames } from "../workflow/frames.js";
+import * as Frames from "../workflow/frames.js";
 
 const MIN_FRAME_DELAY_MS = 20;
 
@@ -62,7 +63,7 @@ export function renderSingleThumbnail(params) {
         return false;
     }
 
-    renderToCanvas(thumb, frames[index].imgData, getSettings(index));
+    renderToCanvas(thumb, frames[index].source, getSettings(index));
     return true;
 }
 
@@ -92,7 +93,7 @@ export function rebuildTimeline(params) {
     animationThumb.className = "gif-frame-thumb animation-thumb";
     animationThumb.width = currentSettings.width;
     animationThumb.height = currentSettings.height;
-    renderToCanvas(animationThumb, frames[0].imgData, getSettings(0));
+    renderToCanvas(animationThumb, frames[0].source, getSettings(0));
 
     const playIcon = document.createElement("div");
     playIcon.className = "thumb-label play-icon";
@@ -116,7 +117,7 @@ export function rebuildTimeline(params) {
         thumb.className = "gif-frame-thumb";
         thumb.width = currentSettings.width;
         thumb.height = currentSettings.height;
-        renderToCanvas(thumb, frame.imgData, getSettings(index));
+        renderToCanvas(thumb, frame.source, getSettings(index));
 
         const label = document.createElement("div");
         label.className = "thumb-label";
@@ -179,7 +180,7 @@ export function refreshTimelineThumbnails(params) {
                 ? animationWrap.querySelector("canvas")
                 : null;
             if (animationCanvas) {
-                renderToCanvas(animationCanvas, frames[0].imgData, getSettings(0));
+                renderToCanvas(animationCanvas, frames[0].source, getSettings(0));
             }
         };
 
@@ -195,7 +196,6 @@ export function startPlayback(params) {
     const config = params || {};
     const appState = config.appState || {};
     const setStateValue = config.setStateValue;
-    const processor = config.processor;
     const getSettings = config.getSettings;
     const renderToCanvas = config.renderToCanvas;
     const previewCanvas = config.previewCanvas;
@@ -213,7 +213,7 @@ export function startPlayback(params) {
             return Date.now();
         });
 
-    if (!processor || typeof getSettings !== "function" || typeof renderToCanvas !== "function") {
+    if (typeof getSettings !== "function" || typeof renderToCanvas !== "function") {
         return;
     }
 
@@ -235,11 +235,11 @@ export function startPlayback(params) {
     }
 
     const renderNextFrame = (requestedIndex) => {
-        if (!processor.sourceIsGif) {
+        if (!Frames.isMultiFrame()) {
             return;
         }
 
-        const frames = Array.isArray(processor.gifFrames) ? processor.gifFrames : [];
+        const frames = Frames.getFrames();
         if (frames.length === 0) {
             if (typeof setStateValue === "function") {
                 setStateValue("gifTimer", null);
@@ -262,17 +262,17 @@ export function startPlayback(params) {
             const settings = getSettings(frameIndex);
 
             const renderStart = nowFn();
-            renderToCanvas(previewCanvas, frame.imgData, settings);
+            renderToCanvas(previewCanvas, frame.source, settings);
             const renderDuration = nowFn() - renderStart;
             if (previewInfo) {
-                previewInfo.textContent = `${settings.width} × ${settings.height} | GIF: ${frameIndex + 1}/${frames.length} fr`;
+                previewInfo.textContent = `${settings.width} × ${settings.height} | Frame: ${frameIndex + 1}/${frames.length}`;
             }
 
             if (typeof setActiveTimelineEntry === "function") {
                 setActiveTimelineEntry(0);
             }
 
-            let delay = frame.delay * 10 || 100;
+            let delay = frame.delayMs || 100;
             if (delay < MIN_FRAME_DELAY_MS) {
                 delay = 100;
             }
@@ -295,7 +295,7 @@ export function startPlayback(params) {
             const frameIndex = normalizeFrameIndex(appState.currentFrame, frames.length);
             const settings = getSettings(frameIndex);
             if (previewInfo) {
-                previewInfo.textContent = `${settings.width} × ${settings.height} | GIF: ${frameIndex + 1}/${frames.length} fr (Paused)`;
+                previewInfo.textContent = `${settings.width} × ${settings.height} | Frame: ${frameIndex + 1}/${frames.length} (Paused)`;
             }
             if (typeof setStateValue === "function") {
                 setStateValue("gifTimer", null);

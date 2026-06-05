@@ -1,5 +1,6 @@
 import { normalizeSettings, mergeFrameTuning } from "../core/settings.js";
-import { Processor } from "../imaging/processor.js";
+import { processFrame } from "../imaging/processor.js";
+import * as Frames from "../workflow/frames.js";
 import { buildTokens } from "./packing.js";
 import { formatPlain, formatArduinoMulti } from "./formats.js";
 
@@ -14,21 +15,11 @@ function renderFrames(safe) {
     const canvas = document.createElement("canvas");
     canvas.width = safe.width;
     canvas.height = safe.height;
-
-    const sources = Processor.sourceIsGif && Processor.gifFrames.length > 0
-        ? Processor.gifFrames.map((f) => ({ source: f.imgData, tuning: f.tuning || null }))
-        : [{ source: Processor.sourceImage, tuning: null }];
-
-    return sources.map((entry) => {
-        const frameSafe = entry.tuning ? mergeFrameTuning(safe, entry.tuning) : safe;
-        const result = Processor.processFrame(canvas, entry.source, frameSafe);
+    return Frames.getFrames().map((frame) => {
+        const frameSafe = frame.tuning ? mergeFrameTuning(safe, frame.tuning) : safe;
+        const result = processFrame(canvas, frame.source, frameSafe);
         const data = pickPixelData(result, safe.pixelFormat);
-        return {
-            name: safe.varName,
-            width: safe.width,
-            height: safe.height,
-            tokens: buildTokens(data, frameSafe),
-        };
+        return { name: frame.name, width: safe.width, height: safe.height, tokens: buildTokens(data, frameSafe) };
     });
 }
 
@@ -39,7 +30,7 @@ const FORMATTERS = {
 
 export function generate(settings) {
     const safe = normalizeSettings(settings);
-    if (!Processor.sourceImage) return "";
+    if (!Frames.hasFrames()) return "";
     const frames = renderFrames(safe);
     const formatter = FORMATTERS[safe.outputFormat] || formatArduinoMulti;
     return formatter(frames, safe);

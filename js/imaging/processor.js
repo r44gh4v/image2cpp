@@ -122,179 +122,133 @@ function buildColorMap(imageData, width, height, safe, build, is565) {
     return { imageData: imageData, binaryData: null, rgb565Data: rgb565Data, rgb888Data: rgb888Data };
 }
 
-// core image manipulation using canvas API
-const Processor = {
-    sourceImage: null,
-    sourceIsGif: false,
-    gifFrames: [],
-    _scratchCanvas: null,
-    _scratchCtx: null,
+// core image manipulation using canvas API (stateless module-level functions)
+let scratchCanvas = null;
+let scratchCtx = null;
 
-    ensureScratchCanvas(width, height) {
-        if (typeof document === "undefined" || typeof document.createElement !== "function") {
-            return null;
-        }
-
-        if (!this._scratchCanvas) {
-            this._scratchCanvas = document.createElement("canvas");
-            this._scratchCtx = this._scratchCanvas.getContext("2d", { willReadFrequently: true });
-        }
-
-        if (!this._scratchCtx) {
-            return null;
-        }
-
-        if (this._scratchCanvas.width !== width) {
-            this._scratchCanvas.width = width;
-        }
-
-        if (this._scratchCanvas.height !== height) {
-            this._scratchCanvas.height = height;
-        }
-
-        return this._scratchCanvas;
-    },
-
-    loadImage(src, callback) {
-        const img = new Image();
-        img.onload = () => {
-            this.sourceIsGif = false;
-            this.sourceImage = img;
-            if (callback) callback();
-        };
-        img.src = src;
-    },
-
-    loadGif(buffer, callback) {
-        const reader = new GifReader(new Uint8Array(buffer));
-        this.sourceIsGif = true;
-        this.gifFrames = [];
-        this.sourceImage = { width: reader.width, height: reader.height };
-
-        const framePixels = new Uint8ClampedArray(reader.width * reader.height * 4);
-        let prevPixels = null;
-
-        for (let i = 0; i < reader.numFrames(); i++) {
-            const frameInfo = reader.frameInfo(i);
-
-            if (frameInfo.disposal === 3) {
-                prevPixels = new Uint8ClampedArray(framePixels);
-            }
-
-            reader.decodeAndBlitFrameRGBA(i, framePixels);
-
-            const imgData = new ImageData(new Uint8ClampedArray(framePixels), reader.width, reader.height);
-            this.gifFrames.push({ imgData, delay: frameInfo.delay });
-
-            const disposal = frameInfo.disposal;
-            if (disposal === 2) {
-                for (let y = frameInfo.y; y < frameInfo.y + frameInfo.height; y++) {
-                    for (let x = frameInfo.x; x < frameInfo.x + frameInfo.width; x++) {
-                        const idx = (y * reader.width + x) * 4;
-                        framePixels[idx] = 0;
-                        framePixels[idx + 1] = 0;
-                        framePixels[idx + 2] = 0;
-                        framePixels[idx + 3] = 0;
-                    }
-                }
-            } else if (disposal === 3 && prevPixels) {
-                framePixels.set(prevPixels);
-            }
-        }
-        if (callback) callback();
-    },
-
-    processFrame(canvas, sourceImgOrData, settings, options) {
-        const safeSettings = normalizeProcessingSettings(settings);
-        const renderOptions = options || {};
-
-        const ctx = canvas.getContext('2d', { willReadFrequently: true });
-        // Smooth (bilinear) scaling matches javl/image2cpp: it preserves tonal
-        // gradients when downscaling so the dithering methods can recover detail.
-        // Turn it off ("Smooth scaling" unchecked) for pixel-perfect
-        // nearest-neighbour output of crisp 1-bit art.
-        ctx.imageSmoothingEnabled = safeSettings.smoothScaling !== false;
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-        ctx.save();
-        ctx.translate(canvas.width / 2, canvas.height / 2);
-        if (safeSettings.rotate) ctx.rotate(safeSettings.rotate * Math.PI / 180);
-        ctx.scale(safeSettings.flipH ? -1 : 1, safeSettings.flipV ? -1 : 1);
-
-        let sw = this.sourceImage.width;
-        let sh = this.sourceImage.height;
-        let dx, dy, dw, dh;
-
-        let targetW = canvas.width;
-        let targetH = canvas.height;
-        if (safeSettings.rotate && safeSettings.rotate % 180 !== 0) {
-            targetW = canvas.height;
-            targetH = canvas.width;
-        }
-
-        if (safeSettings.scale === 'stretch') {
-            dw = targetW; dh = targetH;
-            dx = -dw / 2; dy = -dh / 2;
-        } else if (safeSettings.scale === 'fit') {
-            const ratio = Math.min(targetW / sw, targetH / sh);
-            dw = sw * ratio; dh = sh * ratio;
-            dx = -dw / 2; dy = -dh / 2;
-        } else {
-            dw = sw; dh = sh;
-            dx = -dw / 2; dy = -dh / 2;
-        }
-
-        // Snap to whole pixels so the draw never lands on a sub-pixel boundary.
-        dw = Math.round(dw);
-        dh = Math.round(dh);
-        dx = -Math.round(dw / 2);
-        dy = -Math.round(dh / 2);
-
-        const hasImageDataCtor = typeof ImageData !== 'undefined';
-        if (hasImageDataCtor && sourceImgOrData instanceof ImageData) {
-            const scratchCanvas = this.ensureScratchCanvas(sw, sh);
-            if (scratchCanvas && this._scratchCtx) {
-                this._scratchCtx.putImageData(sourceImgOrData, 0, 0);
-                ctx.drawImage(scratchCanvas, dx, dy, dw, dh);
-            } else {
-                ctx.drawImage(sourceImgOrData, dx, dy, dw, dh);
-            }
-        } else {
-            ctx.drawImage(sourceImgOrData, dx, dy, dw, dh);
-        }
-        ctx.restore();
-
-        const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-        const result = this.applyFiltersAndColorMap(
-            imageData,
-            canvas.width,
-            canvas.height,
-            safeSettings,
-            true,
-            renderOptions.skipBinary === true,
-        );
-
-        ctx.putImageData(result.imageData, 0, 0);
-
-        return result;
-    },
-
-    applyFiltersAndColorMap(imageData, width, height, settings, isNormalized, skipBinary) {
-        const safe = isNormalized === true
-            ? settings
-            : normalizeProcessingSettings(settings);
-        const build = skipBinary !== true;
-        const colors = getThemeColors(safe.theme);
-        const format = safe.pixelFormat;
-
-        if (format === "rgb565" || format === "rgb888") {
-            return buildColorMap(imageData, width, height, safe, build, format === "rgb565");
-        }
-        if (format === "alpha") {
-            return buildAlphaMap(imageData, width, height, safe, build, colors.fg, colors.bg);
-        }
-        return buildMonoMap(imageData, width, height, safe, build, colors.fg, colors.bg);
+function ensureScratchCanvas(width, height) {
+    if (typeof document === "undefined" || typeof document.createElement !== "function") {
+        return null;
     }
-};
 
-export { Processor };
+    if (!scratchCanvas) {
+        scratchCanvas = document.createElement("canvas");
+        scratchCtx = scratchCanvas.getContext("2d", { willReadFrequently: true });
+    }
+
+    if (!scratchCtx) {
+        return null;
+    }
+
+    if (scratchCanvas.width !== width) {
+        scratchCanvas.width = width;
+    }
+
+    if (scratchCanvas.height !== height) {
+        scratchCanvas.height = height;
+    }
+
+    return scratchCanvas;
+}
+
+function applyFiltersAndColorMap(imageData, width, height, settings, isNormalized, skipBinary) {
+    const safe = isNormalized === true
+        ? settings
+        : normalizeProcessingSettings(settings);
+    const build = skipBinary !== true;
+    const format = safe.pixelFormat;
+
+    if (format === "rgb565" || format === "rgb888") {
+        return buildColorMap(imageData, width, height, safe, build, format === "rgb565");
+    }
+    const colors = getThemeColors(safe.theme);
+    if (format === "alpha") {
+        return buildAlphaMap(imageData, width, height, safe, build, colors.fg, colors.bg);
+    }
+    return buildMonoMap(imageData, width, height, safe, build, colors.fg, colors.bg);
+}
+
+export function loadImageElement(src) {
+    return new Promise((resolve, reject) => {
+        const img = new Image();
+        img.onload = () => resolve(img);
+        img.onerror = reject;
+        img.src = src;
+    });
+}
+
+export function decodeGif(arrayBuffer) {
+    const reader = new GifReader(new Uint8Array(arrayBuffer));
+    const width = reader.width;
+    const height = reader.height;
+    const frames = [];
+    const framePixels = new Uint8ClampedArray(width * height * 4);
+    let prevPixels = null;
+    for (let i = 0; i < reader.numFrames(); i++) {
+        const info = reader.frameInfo(i);
+        if (info.disposal === 3) prevPixels = new Uint8ClampedArray(framePixels);
+        reader.decodeAndBlitFrameRGBA(i, framePixels);
+        frames.push({
+            imageData: new ImageData(new Uint8ClampedArray(framePixels), width, height),
+            delayMs: (info.delay || 0) * 10,
+        });
+        if (info.disposal === 2) {
+            for (let y = info.y; y < info.y + info.height; y++) {
+                for (let x = info.x; x < info.x + info.width; x++) {
+                    const idx = (y * width + x) * 4;
+                    framePixels[idx] = framePixels[idx + 1] = framePixels[idx + 2] = framePixels[idx + 3] = 0;
+                }
+            }
+        } else if (info.disposal === 3 && prevPixels) {
+            framePixels.set(prevPixels);
+        }
+    }
+    return { width, height, frames };
+}
+
+export function processFrame(canvas, source, settings, options) {
+    const safeSettings = normalizeProcessingSettings(settings);
+    const renderOptions = options || {};
+    // Smooth (bilinear) scaling matches javl/image2cpp: it preserves tonal
+    // gradients when downscaling so the dithering methods can recover detail.
+    // Turn it off ("Smooth scaling" unchecked) for pixel-perfect
+    // nearest-neighbour output of crisp 1-bit art.
+    const ctx = canvas.getContext("2d", { willReadFrequently: true });
+    ctx.imageSmoothingEnabled = safeSettings.smoothScaling !== false;
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    ctx.save();
+    ctx.translate(canvas.width / 2, canvas.height / 2);
+    if (safeSettings.rotate) ctx.rotate(safeSettings.rotate * Math.PI / 180);
+    ctx.scale(safeSettings.flipH ? -1 : 1, safeSettings.flipV ? -1 : 1);
+
+    const sw = source.naturalWidth || source.width;
+    const sh = source.naturalHeight || source.height;
+    let targetW = canvas.width;
+    let targetH = canvas.height;
+    if (safeSettings.rotate && safeSettings.rotate % 180 !== 0) { targetW = canvas.height; targetH = canvas.width; }
+
+    let dw, dh;
+    if (safeSettings.scale === "stretch") { dw = targetW; dh = targetH; }
+    else if (safeSettings.scale === "fit") { const r = Math.min(targetW / sw, targetH / sh); dw = sw * r; dh = sh * r; }
+    else { dw = sw; dh = sh; }
+    dw = Math.round(dw); dh = Math.round(dh);
+    const dx = -Math.round(dw / 2); const dy = -Math.round(dh / 2);
+
+    if (typeof ImageData !== "undefined" && source instanceof ImageData) {
+        const scratch = ensureScratchCanvas(sw, sh);
+        if (scratch && scratchCtx) {
+            scratchCtx.putImageData(source, 0, 0);
+            ctx.drawImage(scratch, dx, dy, dw, dh);
+        } else {
+            ctx.drawImage(source, dx, dy, dw, dh);
+        }
+    } else {
+        ctx.drawImage(source, dx, dy, dw, dh);
+    }
+    ctx.restore();
+
+    const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+    const result = applyFiltersAndColorMap(imageData, canvas.width, canvas.height, safeSettings, true, renderOptions.skipBinary === true);
+    ctx.putImageData(result.imageData, 0, 0);
+    return result;
+}
