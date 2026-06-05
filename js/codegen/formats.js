@@ -39,7 +39,7 @@ export function formatArduinoMulti(frames, safe) {
         names.push(name);
         blocks.push(`${frameComment(f)}\n${arrayBlock(f.tokens, safe, name, true)}`);
     });
-    const arrName = `${safe.varName}_all_array`;
+    const arrName = `${safe.varName}_array`;
     const list = names.map((n) => "\t" + n).join(",\n");
     blocks.push(
         `const int ${arrName}_len = ${names.length};\n`
