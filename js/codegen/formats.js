@@ -50,13 +50,13 @@ export function formatArduinoMulti(frames, safe) {
 
 export function formatArduinoSingle(frames, safe) {
     const type = cTypeFor(safe.pixelFormat);
-    const body = frames.map((f) => `\t${frameComment(f)}\n${indentTokens(f.tokens)}`).join("\n");
+    const body = frames.map((f) => `\t${frameComment(f)}\n${indentTokens(f.tokens)}`).join(",\n");
     return `const ${type} ${safe.varName} [] PROGMEM = {\n${body}\n};\n`;
 }
 
 export function formatAdafruitGfx(frames, safe) {
     const id = safe.varName;
-    const bitmapBody = frames.map((f) => `\t${frameComment(f)}\n${indentTokens(f.tokens)}`).join("\n");
+    const bitmapBody = frames.map((f) => `\t${frameComment(f)}\n${indentTokens(f.tokens)}`).join(",\n");
     let out = `const unsigned char ${id}Bitmap [] PROGMEM = {\n${bitmapBody}\n};\n\n`;
 
     const allSingleChar = frames.length > 0 && frames.every((f) => f.name && f.name.length === 1);
