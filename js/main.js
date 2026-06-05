@@ -6,6 +6,7 @@
 import { normalizeSettings, mergeFrameTuning } from "./core/settings.js";
 import { processFrame } from "./imaging/processor.js";
 import { generate } from "./codegen/generator.js";
+import { parseByteArrayText, bytesToImageData } from "./imaging/reverse.js";
 import * as CustomSelect from "./ui/custom-select.js";
 import { createThemeController } from "./ui/theme.js";
 import * as PreviewView from "./ui/preview-view.js";
@@ -65,6 +66,13 @@ const UI = {
         this.appHeader = document.querySelector(".app-header");
         this.dropZone = document.getElementById("drop-zone");
         this.fileInput = document.getElementById("file-input");
+        this.inputModeToggle = document.getElementById("input-mode-toggle");
+        this.paneUpload = document.getElementById("pane-upload");
+        this.panePaste = document.getElementById("pane-paste");
+        this.pasteInput = document.getElementById("paste-input");
+        this.pasteError = document.getElementById("paste-error");
+        this.btnReadH = document.getElementById("btn-read-h");
+        this.btnReadV = document.getElementById("btn-read-v");
         this.canvasWidth = document.getElementById("canvas-width");
         this.canvasHeight = document.getElementById("canvas-height");
         this.btnSwapWh = document.getElementById("btn-swap-wh");
@@ -222,6 +230,20 @@ const UI = {
                 event.target.value = "";
             }
         });
+
+        this.inputModeToggle.querySelectorAll(".action-btn").forEach((btn) => {
+            btn.addEventListener("click", () => {
+                const mode = btn.dataset.mode;
+                this.inputModeToggle.querySelectorAll(".action-btn")
+                    .forEach((b) => b.classList.toggle("active", b === btn));
+                this.paneUpload.classList.toggle("is-hidden", mode !== "upload");
+                this.panePaste.classList.toggle("is-hidden", mode !== "paste");
+            });
+        });
+
+        const readPasted = (orientation) => App.handlePastedArray(orientation);
+        this.btnReadH.addEventListener("click", () => readPasted("horizontal"));
+        this.btnReadV.addEventListener("click", () => readPasted("vertical"));
 
         const triggerElements = [
             this.canvasWidth,
@@ -428,6 +450,23 @@ const App = {
         } catch (err) {
             console.error(err);
             alert("Unable to load these files.");
+        }
+    },
+
+    handlePastedArray(orientation) {
+        UI.pasteError.classList.add("is-hidden");
+        const width = parseInt(UI.canvasWidth.value, 10) || 128;
+        const height = parseInt(UI.canvasHeight.value, 10) || 64;
+        try {
+            const tokens = parseByteArrayText(UI.pasteInput.value);
+            if (tokens.length === 0) throw new Error("empty");
+            const imageData = bytesToImageData(tokens, width, height, orientation);
+            Object.assign(state, { currentFrame: 0, isPaused: false });
+            if (state.gifTimer) { clearTimeout(state.gifTimer); state.gifTimer = null; }
+            Frames.setFrames([{ source: imageData, name: UI.optVarName.value || "byte array", delayMs: 0 }]);
+            this.updatePreview();
+        } catch (err) {
+            UI.pasteError.classList.remove("is-hidden");
         }
     },
 

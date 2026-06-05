@@ -1528,3 +1528,8 @@ input[type="radio"],
     opacity: 0.45;
     pointer-events: none;
 }
+
+#paste-input { width: 100%; min-height: 96px; resize: vertical; }
+#input-mode-toggle .action-btn { padding: 0.2rem 0.6rem; }
+#input-mode-toggle .action-btn.active { background: var(--accent); color: var(--text-on-accent); border-color: var(--accent); }
+#paste-error { color: #ff6b6b; }

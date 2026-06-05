@@ -34,13 +34,35 @@
             <div class="card">
                 <div class="card-header">
                     <h2>1. Input Source</h2>
+                    <div class="header-actions">
+                        <div class="action-row" id="input-mode-toggle" role="tablist">
+                            <button class="action-btn outline active" data-mode="upload" type="button">Upload</button>
+                            <button class="action-btn outline" data-mode="paste" type="button">Paste</button>
+                        </div>
+                    </div>
                 </div>
-                <div class="drop-zone" id="drop-zone">
-                    <svg class="drop-icon" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
-                    <span class="drop-text">Drop file or Browse</span>
-                    <span class="drop-hint">GIF, PNG, JPEG, WEBP</span>
+                <div id="pane-upload">
+                    <div class="drop-zone" id="drop-zone">
+                        <svg class="drop-icon" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
+                        <span class="drop-text">Drop file(s) or Browse</span>
+                        <span class="drop-hint">GIF, PNG, JPEG, WEBP &middot; multiple OK</span>
+                    </div>
+                    <input type="file" id="file-input" class="is-hidden" accept="image/png, image/jpeg, image/gif, image/webp" multiple>
                 </div>
-                <input type="file" id="file-input" class="is-hidden" accept="image/png, image/jpeg, image/gif, image/webp">
+                <div id="pane-paste" class="is-hidden">
+                    <div class="setting-group">
+                        <label for="paste-input">Byte array</label>
+                        <textarea id="paste-input" class="code-output" spellcheck="false" placeholder="0xFF, 0x00, ... or paste full Arduino array"></textarea>
+                    </div>
+                    <div class="setting-group mt-2">
+                        <label>Read using width/height from Display Setup</label>
+                        <div class="action-row">
+                            <button class="action-btn outline" id="btn-read-h" type="button">Read Horizontal</button>
+                            <button class="action-btn outline" id="btn-read-v" type="button">Read Vertical</button>
+                        </div>
+                        <div class="note is-hidden" id="paste-error">Invalid byte array — check for stray characters.</div>
+                    </div>
+                </div>
             </div>
 
             <div class="card">
