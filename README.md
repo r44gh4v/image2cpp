@@ -6,8 +6,6 @@ All processing happens locally in your browser.
 
 ## Run locally
 
-ES modules require an HTTP server (not `file://`):
-
     python -m http.server 8000   # then open http://localhost:8000/image2cpp/
     # or: npx serve .
 
@@ -19,4 +17,7 @@ ES modules require an HTTP server (not `file://`):
   invert, flip, rotate, scaling (fit/stretch/original), smooth scaling.
 - Pixel formats: 1-bit mono (horizontal/vertical), RGB565, RGB888, alpha map; u8g2 bit-swap.
 - Output: Arduino PROGMEM (multi), Arduino single bitmap, Adafruit GFXbitmapFont, plain C array.
-- Copy to clipboard or download a `.h` file. Light/dark/system theme.
+- Copy to clipboard or download a `.h` file. 
+- Light/Dark theme.
+
+![screenshot](screenshot.jpeg)

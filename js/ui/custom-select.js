@@ -99,7 +99,13 @@ function buildCustomSelect(select) {
     dropdown.id = listboxId;
     dropdown.setAttribute("role", "listbox");
 
-    Array.from(select.options).forEach((option, index) => {
+    // Walk the select's children so <optgroup> labels become (non-selectable)
+    // headers. Option indices still follow select.options order, so they stay in
+    // sync with selectedIndex and the .custom-select-option node list.
+    let optionIndex = 0;
+    const appendOption = (option) => {
+        const index = optionIndex;
+        optionIndex += 1;
         const item = document.createElement("div");
         item.className = "custom-select-option";
         item.textContent = option.text;
@@ -116,6 +122,21 @@ function buildCustomSelect(select) {
         });
 
         dropdown.appendChild(item);
+    };
+
+    Array.from(select.children).forEach((child) => {
+        if (child.tagName === "OPTGROUP") {
+            const header = document.createElement("div");
+            header.className = "custom-select-group-label";
+            header.textContent = child.label;
+            header.setAttribute("aria-hidden", "true");
+            dropdown.appendChild(header);
+            Array.from(child.children).forEach((opt) => {
+                if (opt.tagName === "OPTION") appendOption(opt);
+            });
+        } else if (child.tagName === "OPTION") {
+            appendOption(child);
+        }
     });
 
     wrapper.appendChild(trigger);

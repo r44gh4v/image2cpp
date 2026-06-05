@@ -43,6 +43,8 @@ function buildMonoMap(imageData, width, height, safe, build, fg, bg) {
     applyDithering(data, width, threshold, safe.dither);
 
     // Pass 3: bits (bright -> lit) + colorize preview.
+    // invertBg only flips PADDING/transparent pixels (alpha < 128); invert flips
+    // the lit/unlit bit of OPAQUE pixels. They are independent controls.
     const binaryData = build ? new Uint8Array(width * height) : null;
     for (let i = 0; i < data.length; i += 4) {
         const pIdx = i / 4;
@@ -156,6 +158,75 @@ function ensureScratchCanvas(width, height) {
     return scratchCanvas;
 }
 
+// Ping-pong canvases for progressive (multi-step) downscaling.
+let dsA = null;
+let dsACtx = null;
+let dsB = null;
+let dsBCtx = null;
+
+function ensureDownscalePair() {
+    if (typeof document === "undefined" || typeof document.createElement !== "function") {
+        return false;
+    }
+    if (!dsA) {
+        dsA = document.createElement("canvas");
+        dsACtx = dsA.getContext("2d");
+        dsB = document.createElement("canvas");
+        dsBCtx = dsB.getContext("2d");
+    }
+    return !!(dsACtx && dsBCtx);
+}
+
+function blitHighQuality(ctx, src, sw, sh, dw, dh) {
+    ctx.imageSmoothingEnabled = true;
+    ctx.imageSmoothingQuality = "high";
+    ctx.clearRect(0, 0, dw, dh);
+    if (sw === undefined) {
+        ctx.drawImage(src, 0, 0, dw, dh);
+    } else {
+        ctx.drawImage(src, 0, 0, sw, sh, 0, 0, dw, dh);
+    }
+}
+
+// A single bilinear drawImage from a large source straight to a tiny target
+// aliases badly (it samples too few source texels). Halving the resolution in
+// steps until within 2x of the target preserves far more detail. Returns a
+// canvas (plus the used sub-rect size) or null when no downscale is needed.
+function getDownscaledDrawable(source, sw, sh, dw, dh) {
+    if (sw <= 2 * dw && sh <= 2 * dh) return null; // close enough; let the caller draw directly
+    if (!ensureDownscalePair()) return null;
+
+    // Stage the full-resolution source onto dsA.
+    dsA.width = sw;
+    dsA.height = sh;
+    dsACtx.imageSmoothingEnabled = true;
+    dsACtx.imageSmoothingQuality = "high";
+    dsACtx.clearRect(0, 0, sw, sh);
+    if (typeof ImageData !== "undefined" && source instanceof ImageData) {
+        dsACtx.putImageData(source, 0, 0);
+    } else {
+        dsACtx.drawImage(source, 0, 0, sw, sh);
+    }
+
+    let src = dsA, dst = dsB, dstCtx = dsBCtx;
+    let cw = sw, ch = sh;
+    while (cw > 2 * dw || ch > 2 * dh) {
+        const nw = Math.max(dw, Math.floor(cw / 2));
+        const nh = Math.max(dh, Math.floor(ch / 2));
+        dst.width = nw;
+        dst.height = nh;
+        blitHighQuality(dstCtx, src, cw, ch, nw, nh);
+        // Swap roles; the freshly drawn canvas becomes the source next round.
+        const prevSrc = src;
+        src = dst;
+        dst = prevSrc;
+        dstCtx = (dst === dsA) ? dsACtx : dsBCtx;
+        cw = nw;
+        ch = nh;
+    }
+    return { canvas: src, width: cw, height: ch };
+}
+
 function applyFiltersAndColorMap(imageData, width, height, settings, isNormalized, skipBinary) {
     const safe = isNormalized === true
         ? settings
@@ -219,7 +290,9 @@ export function processFrame(canvas, source, settings, options) {
     // Turn it off ("Smooth scaling" unchecked) for pixel-perfect
     // nearest-neighbour output of crisp 1-bit art.
     const ctx = canvas.getContext("2d", { willReadFrequently: true });
-    ctx.imageSmoothingEnabled = safeSettings.smoothScaling !== false;
+    const smoothing = safeSettings.smoothScaling !== false;
+    ctx.imageSmoothingEnabled = smoothing;
+    ctx.imageSmoothingQuality = "high";
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     ctx.save();
     ctx.translate(canvas.width / 2, canvas.height / 2);
@@ -239,7 +312,14 @@ export function processFrame(canvas, source, settings, options) {
     dw = Math.round(dw); dh = Math.round(dh);
     const dx = -Math.round(dw / 2); const dy = -Math.round(dh / 2);
 
-    if (typeof ImageData !== "undefined" && source instanceof ImageData) {
+    // For big-source -> small-target reductions, pre-shrink in halving steps so
+    // the final placement only scales by <=2x (much less aliasing). Only when
+    // smoothing is on — nearest-neighbour pixel art must stay single-step/crisp.
+    const reduced = smoothing ? getDownscaledDrawable(source, sw, sh, Math.max(1, Math.ceil(dw)), Math.max(1, Math.ceil(dh))) : null;
+
+    if (reduced) {
+        ctx.drawImage(reduced.canvas, 0, 0, reduced.width, reduced.height, dx, dy, dw, dh);
+    } else if (typeof ImageData !== "undefined" && source instanceof ImageData) {
         const scratch = ensureScratchCanvas(sw, sh);
         if (scratch && scratchCtx) {
             scratchCtx.putImageData(source, 0, 0);

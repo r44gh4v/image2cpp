@@ -6,8 +6,9 @@
 import { normalizeSettings, mergeFrameTuning } from "./core/settings.js";
 import { processFrame } from "./imaging/processor.js";
 import { generate } from "./codegen/generator.js";
-import { parseByteArrayText, bytesToImageData } from "./imaging/reverse.js";
+import { parseByteArrayText, bytesToImageData, expectedByteCount } from "./imaging/reverse.js";
 import * as CustomSelect from "./ui/custom-select.js";
+import { decorateDitherSelect } from "./ui/dither-swatches.js";
 import { createThemeController } from "./ui/theme.js";
 import * as PreviewView from "./ui/preview-view.js";
 import * as Timeline from "./ui/timeline-view.js";
@@ -41,11 +42,8 @@ const UiTheme = createThemeController({
     modeSequence: ["system", "light", "dark"],
 });
 
-const APP_THEME_MODE_LABELS = { system: "System", light: "Light", dark: "Dark" };
-
-function getAppThemeModeLabel(mode) {
-    return APP_THEME_MODE_LABELS[mode] || APP_THEME_MODE_LABELS.dark;
-}
+const SUN_ICON = "<svg width=\"15\" height=\"15\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><circle cx=\"12\" cy=\"12\" r=\"4\"></circle><path d=\"M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41\"></path></svg>";
+const MOON_ICON = "<svg width=\"15\" height=\"15\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z\"></path></svg>";
 
 function prefersReducedMotion() {
     return typeof window !== "undefined"
@@ -104,6 +102,7 @@ const UI = {
         this.bitSwapCheck = document.getElementById("setting-bitswap");
         this.bitSwapWrap = document.getElementById("wrap-bitswap");
         this.ditherGroup = document.getElementById("group-dither");
+        this.formatHint = document.getElementById("format-hint");
         this.gfxGroup = document.getElementById("group-gfx");
         this.gfxFirstAscii = document.getElementById("gfx-first-ascii");
         this.gfxXAdvance = document.getElementById("gfx-x-advance");
@@ -277,7 +276,7 @@ const UI = {
 
         triggerElements.forEach((element) => {
             element.addEventListener("change", () => {
-                if (element === this.optPixelFormat || element === this.optFormat) {
+                if (element === this.optPixelFormat || element === this.optFormat || element === this.optDither) {
                     App.reconcileControls();
                 }
 
@@ -368,7 +367,7 @@ const UI = {
         });
 
         this.appThemeToggle.addEventListener("click", () => {
-            UI.syncThemeToggle(UiTheme.cycleMode());
+            UI.syncThemeToggle(UiTheme.toggle());
         });
     },
 
@@ -377,20 +376,18 @@ const UI = {
             return;
         }
 
-        const safeSnapshot = snapshot || {
-            mode: "dark",
-            resolvedTheme: "dark",
-        };
-        const mode = safeSnapshot.mode || "dark";
-        const resolvedTheme = safeSnapshot.resolvedTheme || mode;
-        const modeLabel = getAppThemeModeLabel(mode);
-        const buttonText = `Theme: ${modeLabel}`;
+        const safeSnapshot = snapshot || { mode: "dark", resolvedTheme: "dark" };
+        const resolvedTheme = safeSnapshot.resolvedTheme || safeSnapshot.mode || "dark";
+        const isDark = resolvedTheme === "dark";
+        // Show the CURRENT theme (icon + word); clicking flips to the other.
+        const label = isDark ? "Dark" : "Light";
+        const icon = isDark ? MOON_ICON : SUN_ICON;
 
-        this.appThemeToggle.textContent = buttonText;
-        this.appThemeToggle.dataset.themeMode = mode;
+        this.appThemeToggle.innerHTML = `${icon}<span>${label}</span>`;
+        this.appThemeToggle.dataset.themeMode = safeSnapshot.mode || resolvedTheme;
         this.appThemeToggle.dataset.themeResolved = resolvedTheme;
-        this.appThemeToggle.title = `${buttonText} (${resolvedTheme})`;
-        this.appThemeToggle.setAttribute("aria-label", `Theme: ${modeLabel} (${resolvedTheme})`);
+        this.appThemeToggle.title = `${label} theme — click to switch to ${isDark ? "Light" : "Dark"}`;
+        this.appThemeToggle.setAttribute("aria-label", `${label} theme. Click to switch to ${isDark ? "light" : "dark"}.`);
     },
 };
 
@@ -438,6 +435,7 @@ const App = {
         const initialThemeSnapshot = UiTheme.init();
         UI.init();
         CustomSelect.init();
+        decorateDitherSelect(UI.optDither);
         this.reconcileControls();
         UiTheme.subscribe((snapshot) => UI.syncThemeToggle(snapshot));
         UI.syncThemeToggle(initialThemeSnapshot || UiTheme.getSnapshot());
@@ -478,8 +476,17 @@ const App = {
             resetPlaybackState();
             Frames.setFrames([{ source: imageData, name: UI.optVarName.value || "byte array", delayMs: 0 }]);
             this.updatePreview();
+
+            // Non-fatal: a wrong W×H silently produces a garbled image. Warn if the
+            // byte count doesn't match what these dimensions imply.
+            const expected = expectedByteCount(width, height, orientation);
+            if (tokens.length !== expected) {
+                UI.pasteError.textContent = `Heads up: ${tokens.length} bytes for ${width}×${height} (${orientation}) — expected ${expected}. Image may be misaligned; check W×H.`;
+                UI.pasteError.classList.remove("is-hidden");
+            }
         } catch (err) {
             console.error(err);
+            UI.pasteError.textContent = "Couldn’t read that byte array — check for stray characters.";
             UI.pasteError.classList.remove("is-hidden");
         }
     },
@@ -661,7 +668,11 @@ const App = {
         }
         this.setControlDisabled(UI.optDrawMode, !isMono);
         this.setControlDisabled(UI.optDither, !isMono, UI.ditherGroup);
-        this.setControlDisabled(UI.thresholdInput, isColor, UI.thresholdInput.closest(".setting-group"));
+        // Otsu computes its own global threshold; Adaptive uses a local mean — both
+        // ignore the manual threshold slider, so disable it for them.
+        const dither = UI.optDither ? UI.optDither.value : "binary";
+        const autoThreshold = isMono && (dither === "otsu" || dither === "adaptive");
+        this.setControlDisabled(UI.thresholdInput, isColor || autoThreshold, UI.thresholdInput.closest(".setting-group"));
         this.setControlDisabled(UI.contrastInput, isAlpha, UI.contrastInput.closest(".setting-group"));
         this.setControlDisabled(UI.bitSwapCheck, isColor, UI.bitSwapWrap);
 
@@ -673,6 +684,20 @@ const App = {
 
         // invert-bg only applies to mono1 (read by buildMonoMap).
         this.setControlDisabled(UI.invertBgCheck, !isMono, UI.invertBgWrap);
+
+        // Surface the silent cross-field overrides + lossy formats so a user's
+        // discarded selection isn't a mystery.
+        if (UI.formatHint) {
+            const hints = [];
+            if (isGfx) hints.push("Adafruit GFX is 1-bit — pixel format locked to Monochrome.");
+            if (!isMono) hints.push("Orientation locked to Horizontal for this pixel format.");
+            if (isColor) hints.push("Bit-swap (u8g2) applies to 1-bit formats only.");
+            if (format === "rgb565") hints.push("RGB565 is lossy — color truncated to 5/6/5 bits.");
+            if (autoThreshold && dither === "otsu") hints.push("Otsu auto-computes the threshold — slider disabled.");
+            if (autoThreshold && dither === "adaptive") hints.push("Adaptive uses a local threshold — slider disabled.");
+            UI.formatHint.textContent = hints.join("  •  ");
+            UI.formatHint.classList.toggle("is-hidden", hints.length === 0);
+        }
     },
 
     toggleCustomSelectHidden(select, hidden) {

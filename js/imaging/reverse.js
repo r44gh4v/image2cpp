@@ -28,6 +28,16 @@ export function parseByteArrayText(text) {
     return input.split(",").filter((t) => t.length > 0);
 }
 
+// How many 1-bit packed bytes a width×height image should contain. Used to warn
+// when a pasted array does not match the declared dimensions (wrong W×H silently
+// reconstructs a garbled image).
+export function expectedByteCount(width, height, orientation) {
+    if (orientation === "vertical") {
+        return width * Math.ceil(height / 8);
+    }
+    return Math.ceil(width / 8) * height;
+}
+
 export function bytesToImageData(tokens, width, height, orientation) {
     const imageData = new ImageData(width, height);
     const data = imageData.data;

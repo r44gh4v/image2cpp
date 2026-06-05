@@ -1,29 +1,31 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="theme-color" content="#f5c542">
-    <title>image2cpp - Image & GIF to C Byte Array</title>
+    <title>image2cpp</title>
     <link rel="icon" type="image/svg+xml" href="favicon.svg">
     <link rel="stylesheet" href="css/style.css">
 </head>
+
 <body>
     <header class="app-header">
         <div class="header-inner">
             <div class="brand">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle><polyline points="21 15 16 10 5 21"></polyline></svg>
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"
+                    stroke-linecap="round" stroke-linejoin="round">
+                    <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+                    <circle cx="8.5" cy="8.5" r="1.5"></circle>
+                    <polyline points="21 15 16 10 5 21"></polyline>
+                </svg>
                 <h1>image2cpp</h1>
             </div>
             <p class="tagline">Convert images &amp; GIFs to C byte arrays</p>
             <div class="header-controls">
-                <button
-                    id="app-theme-toggle"
-                    type="button"
-                    class="theme-toggle-btn"
-                    aria-label="Theme: System"
-                    title="Theme: System"
-                >Theme: System</button>
+                <button id="app-theme-toggle" type="button" class="theme-toggle-btn" aria-label="Theme: System"
+                    title="Theme: System">Theme: System</button>
             </div>
         </div>
     </header>
@@ -36,27 +38,44 @@
                     <h2>1. Input Source</h2>
                 </div>
                 <div class="segmented" id="input-mode-toggle" role="tablist" aria-label="Input source">
-                    <button class="segmented-btn active" data-mode="upload" type="button" role="tab" aria-selected="true">
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
+                    <button class="segmented-btn active" data-mode="upload" type="button" role="tab"
+                        aria-selected="true">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                            stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                            <polyline points="17 8 12 3 7 8"></polyline>
+                            <line x1="12" y1="3" x2="12" y2="15"></line>
+                        </svg>
                         Upload
                     </button>
                     <button class="segmented-btn" data-mode="paste" type="button" role="tab" aria-selected="false">
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="16 18 22 12 16 6"></polyline><polyline points="8 6 2 12 8 18"></polyline></svg>
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                            stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <polyline points="16 18 22 12 16 6"></polyline>
+                            <polyline points="8 6 2 12 8 18"></polyline>
+                        </svg>
                         Code
                     </button>
                 </div>
                 <div id="pane-upload">
                     <div class="drop-zone" id="drop-zone">
-                        <svg class="drop-icon" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
+                        <svg class="drop-icon" width="24" height="24" viewBox="0 0 24 24" fill="none"
+                            stroke="currentColor" stroke-width="2">
+                            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                            <polyline points="17 8 12 3 7 8"></polyline>
+                            <line x1="12" y1="3" x2="12" y2="15"></line>
+                        </svg>
                         <span class="drop-text">Drop images here or browse</span>
-                        <span class="drop-hint">PNG, JPEG, GIF, WebP &middot; multiple OK</span>
+                        <span class="drop-hint">PNG, JPEG, GIF, WebP &middot; accepts multiple</span>
                     </div>
-                    <input type="file" id="file-input" class="is-hidden" accept="image/png, image/jpeg, image/gif, image/webp" multiple>
+                    <input type="file" id="file-input" class="is-hidden"
+                        accept="image/png, image/jpeg, image/gif, image/webp" multiple>
                 </div>
                 <div id="pane-paste" class="is-hidden">
                     <div class="setting-group">
                         <label for="paste-input">Paste byte array</label>
-                        <textarea id="paste-input" spellcheck="false" placeholder="Paste 0xFF, 0x00, &hellip; or a whole Arduino array"></textarea>
+                        <textarea id="paste-input" spellcheck="false"
+                            placeholder="Paste 0xFF, 0x00, &hellip; or a whole Arduino array"></textarea>
                     </div>
                     <div class="setting-group mt-2">
                         <div class="action-row cols-2">
@@ -64,7 +83,8 @@
                             <button class="action-btn outline" id="btn-read-v" type="button">Read vertical</button>
                         </div>
                         <div class="note">Decode at the W &times; H set in Display Setup</div>
-                        <div class="note is-hidden" id="paste-error">Couldn&rsquo;t read that byte array &mdash; check for stray characters.</div>
+                        <div class="note is-hidden" id="paste-error">Couldn&rsquo;t read that byte array &mdash; check
+                            for stray characters.</div>
                     </div>
                 </div>
             </div>
@@ -90,20 +110,28 @@
                     <label>Dimensions (W &times; H)</label>
                     <div class="size-inputs">
                         <input type="number" id="canvas-width" value="128" min="1" aria-label="Canvas width">
-                        <button id="btn-swap-wh" class="icon-btn" title="Swap Width/Height"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="17 11 21 7 17 3"></polyline><line x1="21" y1="7" x2="9" y2="7"></line><polyline points="7 21 3 17 7 13"></polyline><line x1="3" y1="17" x2="15" y2="17"></line></svg></button>
+                        <button id="btn-swap-wh" class="icon-btn" title="Swap Width/Height"><svg width="16" height="16"
+                                viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                                stroke-linecap="round" stroke-linejoin="round">
+                                <polyline points="17 11 21 7 17 3"></polyline>
+                                <line x1="21" y1="7" x2="9" y2="7"></line>
+                                <polyline points="7 21 3 17 7 13"></polyline>
+                                <line x1="3" y1="17" x2="15" y2="17"></line>
+                            </svg></button>
                         <input type="number" id="canvas-height" value="64" min="1" aria-label="Canvas height">
                     </div>
                 </div>
                 <div class="setting-group mt-2">
                     <label>Scaling Mode</label>
                     <select id="setting-scale" class="custom-select">
-                        <option value="fit">Fit (Preserve Ratio)</option>
+                        <option value="fit" selected>Fit (Preserve Ratio)</option>
                         <option value="stretch">Stretch to Fill</option>
-                        <option value="original">Original Size</option>
+                        <option value="original">Original Size (1:1, pixel-perfect)</option>
                     </select>
                 </div>
                 <div class="checkbox-row mt-2">
-                    <label class="cb-wrap" id="wrap-smooth"><input type="checkbox" id="setting-smooth" checked><span class="cb"></span> Smooth scaling</label>
+                    <label class="cb-wrap" id="wrap-smooth"><input type="checkbox" id="setting-smooth"><span
+                            class="cb"></span> Smooth scaling</label>
                 </div>
             </div>
         </section>
@@ -117,7 +145,12 @@
 
                 <div class="setting-group">
                     <div class="label-row">
-                        <label><svg class="tune-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path fill="currentColor" d="M12 22C17.5228 22 22 17.5228 22 12C22 6.47715 17.5228 2 12 2V22Z"/></svg> Contrast</label>
+                        <label><svg class="tune-icon" width="14" height="14" viewBox="0 0 24 24" fill="none"
+                                stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <circle cx="12" cy="12" r="10" />
+                                <path fill="currentColor"
+                                    d="M12 22C17.5228 22 22 17.5228 22 12C22 6.47715 17.5228 2 12 2V22Z" />
+                            </svg> Contrast</label>
                         <span id="contrast-val" class="badge interactive" title="Click to Reset">0</span>
                     </div>
                     <input type="range" id="setting-contrast" min="-255" max="255" value="0" aria-label="Contrast">
@@ -125,7 +158,18 @@
 
                 <div class="setting-group mt-2">
                     <div class="label-row">
-                        <label><svg class="tune-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2"/><path d="M12 20v2"/><path d="M4.93 4.93l1.41 1.41"/><path d="M17.66 17.66l1.41 1.41"/><path d="M2 12h2"/><path d="M20 12h2"/><path d="M6.34 17.66l-1.41 1.41"/><path d="M19.07 4.93l-1.41 1.41"/></svg> Threshold</label>
+                        <label><svg class="tune-icon" width="14" height="14" viewBox="0 0 24 24" fill="none"
+                                stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <circle cx="12" cy="12" r="4" />
+                                <path d="M12 2v2" />
+                                <path d="M12 20v2" />
+                                <path d="M4.93 4.93l1.41 1.41" />
+                                <path d="M17.66 17.66l1.41 1.41" />
+                                <path d="M2 12h2" />
+                                <path d="M20 12h2" />
+                                <path d="M6.34 17.66l-1.41 1.41" />
+                                <path d="M19.07 4.93l-1.41 1.41" />
+                            </svg> Threshold</label>
                         <span id="threshold-val" class="badge interactive" title="Click to Reset">128</span>
                     </div>
                     <input type="range" id="setting-threshold" min="0" max="255" value="128" aria-label="Threshold">
@@ -133,23 +177,55 @@
                 <div class="setting-group mt-2" id="group-dither">
                     <label>Dithering</label>
                     <select id="dither-mode" class="custom-select">
-                        <option value="binary">Binary (threshold)</option>
-                        <option value="bayer">Bayer (ordered)</option>
-                        <option value="floydsteinberg">Floyd-Steinberg</option>
-                        <option value="atkinson">Atkinson</option>
+                        <optgroup label="Threshold (crisp / pixel art)">
+                            <option value="binary">Binary (fixed threshold)</option>
+                            <option value="otsu" selected>Auto threshold (Otsu)</option>
+                            <option value="adaptive">Adaptive (local / text)</option>
+                        </optgroup>
+                        <optgroup label="Ordered">
+                            <option value="bayer">Bayer 4×4</option>
+                            <option value="bayer8">Bayer 8×8</option>
+                        </optgroup>
+                        <optgroup label="Error diffusion (close to original)">
+                            <option value="floydsteinberg">Floyd-Steinberg</option>
+                            <option value="jarvis">Jarvis-Judice-Ninke</option>
+                            <option value="stucki">Stucki</option>
+                            <option value="sierra">Sierra</option>
+                            <option value="burkes">Burkes</option>
+                            <option value="atkinson">Atkinson</option>
+                        </optgroup>
                     </select>
                 </div>
 
                 <div class="checkbox-row mt-3">
-                    <label class="cb-wrap"><input type="checkbox" id="setting-invert"><span class="cb"></span> Invert</label>
-                    <label class="cb-wrap" id="wrap-invert-bg"><input type="checkbox" id="setting-invert-bg"><span class="cb"></span> Invert BG</label>
+                    <label class="cb-wrap"><input type="checkbox" id="setting-invert"><span class="cb"></span>
+                        Invert</label>
+                    <label class="cb-wrap" id="wrap-invert-bg"><input type="checkbox" id="setting-invert-bg"><span
+                            class="cb"></span> Invert BG</label>
                 </div>
                 <div class="setting-group mt-3">
                     <label>Transformations</label>
                     <div class="action-row">
-                        <button id="btn-flip-h" class="action-btn outline" title="Flip Horizontal"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m3 7 5 5-5 5V7z"/><path d="m21 7-5 5 5 5V7z"/><path d="M12 2v20"/></svg></button>
-                        <button id="btn-flip-v" class="action-btn outline" title="Flip Vertical"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m17 3-5 5-5-5h10z"/><path d="m17 21-5-5-5 5h10z"/><path d="M2 12h20"/></svg></button>
-                        <button id="btn-rotate" class="action-btn outline" title="Rotate 90°"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-9-9c2.52 0 4.93 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/></svg></button>
+                        <button id="btn-flip-h" class="action-btn outline" title="Flip Horizontal"><svg width="16"
+                                height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                                stroke-linecap="round" stroke-linejoin="round">
+                                <path d="m3 7 5 5-5 5V7z" />
+                                <path d="m21 7-5 5 5 5V7z" />
+                                <path d="M12 2v20" />
+                            </svg></button>
+                        <button id="btn-flip-v" class="action-btn outline" title="Flip Vertical"><svg width="16"
+                                height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                                stroke-linecap="round" stroke-linejoin="round">
+                                <path d="m17 3-5 5-5-5h10z" />
+                                <path d="m17 21-5-5-5 5h10z" />
+                                <path d="M2 12h20" />
+                            </svg></button>
+                        <button id="btn-rotate" class="action-btn outline" title="Rotate 90°"><svg width="16"
+                                height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                                stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M21 12a9 9 0 1 1-9-9c2.52 0 4.93 1 6.74 2.74L21 8" />
+                                <path d="M21 3v5h-5" />
+                            </svg></button>
                     </div>
                 </div>
             </div>
@@ -186,18 +262,22 @@
                 <div class="setting-group mt-2 is-hidden" id="group-gfx">
                     <label>GFX font settings</label>
                     <div class="size-inputs">
-                        <input type="number" id="gfx-first-ascii" value="48" min="0" max="255" aria-label="First ASCII char">
+                        <input type="number" id="gfx-first-ascii" value="48" min="0" max="255"
+                            aria-label="First ASCII char">
                         <input type="number" id="gfx-x-advance" value="0" min="0" max="255" aria-label="x advance">
                     </div>
-                    <div class="note">First ASCII code (decimal) &middot; x-advance. Used when frames aren&rsquo;t single-character glyphs.</div>
+                    <div class="note">First ASCII code (decimal) &middot; x-advance. Used when frames aren&rsquo;t
+                        single-character glyphs.</div>
                 </div>
                 <div class="setting-group mt-2">
                     <label for="var-name">Variable name</label>
                     <input type="text" id="var-name" value="byte array" placeholder="e.g. my_bitmap">
                 </div>
                 <div class="checkbox-row mt-3">
-                    <label class="cb-wrap" id="wrap-bitswap"><input type="checkbox" id="setting-bitswap"><span class="cb"></span> Swap bits (u8g2)</label>
+                    <label class="cb-wrap" id="wrap-bitswap"><input type="checkbox" id="setting-bitswap"><span
+                            class="cb"></span> Swap bits (u8g2)</label>
                 </div>
+                <div class="note format-hint is-hidden mt-2" id="format-hint" role="status" aria-live="polite"></div>
             </div>
         </section>
 
@@ -219,23 +299,36 @@
                         </select>
                     </div>
                 </div>
-                
+
                 <div class="preview-area">
                     <div class="preview-info" id="preview-info">128 × 64</div>
                     <canvas id="preview-canvas" width="128" height="64"></canvas>
                 </div>
-                
+
                 <div class="gif-frames-timeline is-hidden" id="gif-frames"></div>
 
                 <div class="code-area">
                     <div class="code-toolbar">
                         <span class="code-title">C Byte Array</span>
                         <div class="code-actions">
-                            <button class="action-btn highlight" id="btn-copy" title="Copy to Clipboard"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg> Copy</button>
-                            <button class="action-btn outline" id="btn-download" title="Download as a .h header file"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg> Download</button>
+                            <button class="action-btn highlight" id="btn-copy" title="Copy to Clipboard"><svg width="16"
+                                    height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                                    stroke-linecap="round" stroke-linejoin="round">
+                                    <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                                    <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+                                </svg> Copy</button>
+                            <button class="action-btn outline" id="btn-download"
+                                title="Download as a .h header file"><svg width="16" height="16" viewBox="0 0 24 24"
+                                    fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                                    stroke-linejoin="round">
+                                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                                    <polyline points="7 10 12 15 17 10"></polyline>
+                                    <line x1="12" y1="15" x2="12" y2="3"></line>
+                                </svg> Download</button>
                         </div>
                     </div>
-                    <textarea id="code-output" readonly spellcheck="false" placeholder="// Your generated C array will appear here&hellip;"></textarea>
+                    <textarea id="code-output" readonly spellcheck="false"
+                        placeholder="// Your generated C array will appear here&hellip;"></textarea>
                 </div>
             </div>
         </section>
@@ -243,4 +336,5 @@
 
     <script type="module" src="js/main.js"></script>
 </body>
+
 </html>

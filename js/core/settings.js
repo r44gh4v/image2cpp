@@ -98,9 +98,15 @@ export function normalizeSettings(rawSettings) {
 
     const pixelFormat = oneOf(source.pixelFormat, allowedValues.pixelFormat, defaultSettings.pixelFormat);
     let drawMode = oneOf(source.drawMode, allowedValues.drawMode, defaultSettings.drawMode);
+    // Cross-field rule: byte orientation (horizontal/vertical) only has meaning
+    // for 1-bit packing. Non-mono formats are always emitted row-major, so any
+    // stored "vertical" choice is silently dropped here. The UI mirrors this in
+    // reconcileControls() (disables the control + shows a hint).
     if (pixelFormat !== "mono1") {
         drawMode = "horizontal";
     }
+    // Cross-field rule: bit-swap (u8g2) reverses bits within a packed byte, so it
+    // is only meaningful for the 1-bit formats (mono1/alpha). Forced off for RGB.
     const supportsBitSwap = pixelFormat === "mono1" || pixelFormat === "alpha";
     const bitSwap = supportsBitSwap
         ? toBoolean(source.bitSwap, defaultSettings.bitSwap)

@@ -179,6 +179,15 @@ export function createThemeController(options) {
         return syncFromMode(true);
     }
 
+    // Two-state flip: always switches to the opposite of the CURRENTLY VISIBLE
+    // theme, so every click produces a visible change (unlike cycling through
+    // "system", which can be a no-op when the OS already matches).
+    function toggle() {
+        mode = resolvedTheme === "dark" ? "light" : "dark";
+        persistMode();
+        return syncFromMode(true);
+    }
+
     function init() {
         const storedMode = readStorage(storage, storageKey);
         mode = normalizeMode(storedMode, mode);
@@ -200,6 +209,7 @@ export function createThemeController(options) {
         init,
         getSnapshot,
         cycleMode,
+        toggle,
         subscribe,
     };
 }

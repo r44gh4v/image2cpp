@@ -15,10 +15,17 @@ function renderFrames(safe) {
     const canvas = document.createElement("canvas");
     canvas.width = safe.width;
     canvas.height = safe.height;
+    const expectedPixels = safe.width * safe.height;
     return Frames.getFrames().map((frame) => {
         const frameSafe = frame.tuning ? mergeFrameTuning(safe, frame.tuning) : safe;
         const result = processFrame(canvas, frame.source, frameSafe);
         const data = pickPixelData(result, safe.pixelFormat);
+        // Guard against a buffer that does not match the declared dimensions —
+        // packing trusts safe.width/height, so a mismatch would emit a wrong-sized
+        // (silently corrupt) array. Fail loud instead.
+        if (!data || data.length !== expectedPixels) {
+            throw new Error(`frame "${frame.name}" produced ${data ? data.length : 0} pixels, expected ${safe.width}×${safe.height}=${expectedPixels}`);
+        }
         return { name: frame.name, width: safe.width, height: safe.height, tokens: buildTokens(data, frameSafe) };
     });
 }
@@ -33,7 +40,14 @@ const FORMATTERS = {
 export function generate(settings) {
     const safe = normalizeSettings(settings);
     if (!Frames.hasFrames()) return "";
-    const frames = renderFrames(safe);
+    let frames;
+    try {
+        frames = renderFrames(safe);
+    } catch (err) {
+        // Surface the problem in the output instead of throwing through the
+        // preview pipeline (which would abort the whole render).
+        return `// image2cpp: cannot generate — ${err.message}`;
+    }
     const formatter = FORMATTERS[safe.outputFormat] || formatArduinoMulti;
     return formatter(frames, safe);
 }
