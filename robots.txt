@@ -1,6 +1,0 @@
-User-agent: *
-Allow: /
-Disallow: /scripts/
-Disallow: /tests/
-
-Sitemap: https://image2cpp.pages.dev/sitemap.xml
