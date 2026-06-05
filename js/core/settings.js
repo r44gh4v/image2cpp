@@ -1,8 +1,8 @@
-import { DEFAULT_SETTINGS, LIMITS, ALLOWED_VALUES } from "./constants.js";
-
-const defaultSettings = DEFAULT_SETTINGS;
-const limits = LIMITS;
-const allowedValues = ALLOWED_VALUES;
+import {
+    DEFAULT_SETTINGS as defaultSettings,
+    LIMITS as limits,
+    ALLOWED_VALUES as allowedValues,
+} from "./constants.js";
 
 function toInteger(value, fallback) {
     const numeric = Number(value);

@@ -42,6 +42,7 @@
     --accent: #ffc700;
     --accent-hover: #e6b300;
     --accent-dim: rgba(255, 199, 0, 0.15);
+    --error: #ff6b6b;
     --text-on-accent: #000;
 
     --radius-xs: 4px;
@@ -132,6 +133,7 @@
     --accent: #ffc700;
     --accent-hover: #e1ac00;
     --accent-dim: rgba(255, 199, 0, 0.2);
+    --error: #d63031;
     --text-on-accent: #171717;
 
     --shadow: none;
@@ -1532,4 +1534,5 @@ input[type="radio"],
 #paste-input { width: 100%; min-height: 96px; resize: vertical; }
 #input-mode-toggle .action-btn { padding: 0.2rem 0.6rem; }
 #input-mode-toggle .action-btn.active { background: var(--accent); color: var(--text-on-accent); border-color: var(--accent); }
-#paste-error { color: #ff6b6b; }
+.note { font-size: 11px; color: var(--text-muted); line-height: 1.35; }
+#paste-error { color: var(--error); }

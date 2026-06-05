@@ -1,5 +1,5 @@
 /**
- * Image2Cpp Main Controller
+ * image2cpp main controller
  * Slim ES-module controller wires implementations together
  */
 
@@ -59,6 +59,11 @@ function clearScheduledPreview() {
         cancelAnimationFrame(state.livePreviewRafId);
         state.livePreviewRafId = null;
     }
+}
+
+function resetPlaybackState() {
+    Object.assign(state, { currentFrame: 0, isPaused: false });
+    if (state.gifTimer) { clearTimeout(state.gifTimer); state.gifTimer = null; }
 }
 
 const UI = {
@@ -238,15 +243,17 @@ const UI = {
             btn.addEventListener("click", () => {
                 const mode = btn.dataset.mode;
                 this.inputModeToggle.querySelectorAll(".action-btn")
-                    .forEach((b) => b.classList.toggle("active", b === btn));
+                    .forEach((b) => {
+                        b.classList.toggle("active", b === btn);
+                        b.setAttribute("aria-selected", String(b === btn));
+                    });
                 this.paneUpload.classList.toggle("is-hidden", mode !== "upload");
                 this.panePaste.classList.toggle("is-hidden", mode !== "paste");
             });
         });
 
-        const readPasted = (orientation) => App.handlePastedArray(orientation);
-        this.btnReadH.addEventListener("click", () => readPasted("horizontal"));
-        this.btnReadV.addEventListener("click", () => readPasted("vertical"));
+        this.btnReadH.addEventListener("click", () => App.handlePastedArray("horizontal"));
+        this.btnReadV.addEventListener("click", () => App.handlePastedArray("vertical"));
 
         const triggerElements = [
             this.canvasWidth,
@@ -445,8 +452,7 @@ const App = {
         }
         const safeName = safeVarNameFromFiles(files);
         if (safeName) UI.optVarName.value = safeName;
-        Object.assign(state, { currentFrame: 0, isPaused: false });
-        if (state.gifTimer) { clearTimeout(state.gifTimer); state.gifTimer = null; }
+        resetPlaybackState();
         try {
             const frames = await ingestFiles(files);
             if (frames.length === 0) { alert("Unable to load these files."); return; }
@@ -466,11 +472,11 @@ const App = {
             const tokens = parseByteArrayText(UI.pasteInput.value);
             if (tokens.length === 0) throw new Error("empty");
             const imageData = bytesToImageData(tokens, width, height, orientation);
-            Object.assign(state, { currentFrame: 0, isPaused: false });
-            if (state.gifTimer) { clearTimeout(state.gifTimer); state.gifTimer = null; }
+            resetPlaybackState();
             Frames.setFrames([{ source: imageData, name: UI.optVarName.value || "byte array", delayMs: 0 }]);
             this.updatePreview();
         } catch (err) {
+            console.error(err);
             UI.pasteError.classList.remove("is-hidden");
         }
     },
