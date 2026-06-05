@@ -60,7 +60,7 @@
     --duration-ui: 0.3s;
     --duration-base: 0.22s;
     --duration-entrance: 0.26s;
-    --duration-feedback: 0.34s;
+    --duration-feedback: 0.3s;
 
     --ease-standard: cubic-bezier(0.4, 0, 0.2, 1);
     --ease-smooth: cubic-bezier(0.22, 0.61, 0.36, 1);
@@ -188,6 +188,7 @@ body {
     font-size: 13px;
     line-height: 1.4;
     -webkit-font-smoothing: antialiased;
+    font-synthesis: none;
     display: flex;
     flex-direction: column;
     overflow: hidden;
@@ -1536,3 +1537,6 @@ input[type="radio"],
 #input-mode-toggle .action-btn.active { background: var(--accent); color: var(--text-on-accent); border-color: var(--accent); }
 .note { font-size: 11px; color: var(--text-muted); line-height: 1.35; }
 #paste-error { color: var(--error); }
+
+/* Slashed zero on monospaced hex/numeric surfaces (0 vs O legibility) */
+#code-output, #paste-input, .badge, .preview-info { font-feature-settings: "zero" 1; }
