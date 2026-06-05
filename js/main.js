@@ -241,10 +241,10 @@ const UI = {
             }
         });
 
-        this.inputModeToggle.querySelectorAll(".action-btn").forEach((btn) => {
+        this.inputModeToggle.querySelectorAll(".segmented-btn").forEach((btn) => {
             btn.addEventListener("click", () => {
                 const mode = btn.dataset.mode;
-                this.inputModeToggle.querySelectorAll(".action-btn")
+                this.inputModeToggle.querySelectorAll(".segmented-btn")
                     .forEach((b) => {
                         b.classList.toggle("active", b === btn);
                         b.setAttribute("aria-selected", String(b === btn));
