@@ -233,4 +233,4 @@ function init() {
     }
 }
 
-export { init, closeCustomSelects as closeAll, setCustomSelectIndex as setIndex };
+export { init, setCustomSelectIndex as setIndex };
