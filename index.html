@@ -41,8 +41,8 @@
                         Upload
                     </button>
                     <button class="segmented-btn" data-mode="paste" type="button" role="tab" aria-selected="false">
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="8" y="2" width="8" height="4" rx="1" ry="1"></rect><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"></path></svg>
-                        Paste
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="16 18 22 12 16 6"></polyline><polyline points="8 6 2 12 8 18"></polyline></svg>
+                        Code
                     </button>
                 </div>
                 <div id="pane-upload">
@@ -54,16 +54,21 @@
                     <input type="file" id="file-input" class="is-hidden" accept="image/png, image/jpeg, image/gif, image/webp" multiple>
                 </div>
                 <div id="pane-paste" class="is-hidden">
-                    <div class="setting-group">
-                        <label for="paste-input">Paste byte array</label>
-                        <textarea id="paste-input" class="code-output" spellcheck="false" placeholder="Paste 0xFF, 0x00, &hellip;  or a whole Arduino array"></textarea>
+                    <div class="code-input-area">
+                        <div class="code-toolbar">
+                            <span class="code-title">Byte Array</span>
+                            <div class="code-actions">
+                                <button class="action-btn outline" id="btn-clear-paste" type="button">Clear</button>
+                            </div>
+                        </div>
+                        <textarea id="paste-input" spellcheck="false" placeholder="Paste 0xFF, 0x00, &hellip; or a whole Arduino array"></textarea>
                     </div>
                     <div class="setting-group mt-2">
-                        <label>Decode at the W &times; H set in Display Setup</label>
                         <div class="action-row cols-2">
                             <button class="action-btn outline" id="btn-read-h" type="button">Read horizontal</button>
                             <button class="action-btn outline" id="btn-read-v" type="button">Read vertical</button>
                         </div>
+                        <div class="note">Decode at the W &times; H set in Display Setup</div>
                         <div class="note is-hidden" id="paste-error">Couldn&rsquo;t read that byte array &mdash; check for stray characters.</div>
                     </div>
                 </div>

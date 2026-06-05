@@ -78,6 +78,7 @@ const UI = {
         this.pasteError = document.getElementById("paste-error");
         this.btnReadH = document.getElementById("btn-read-h");
         this.btnReadV = document.getElementById("btn-read-v");
+        this.btnClearPaste = document.getElementById("btn-clear-paste");
         this.canvasWidth = document.getElementById("canvas-width");
         this.canvasHeight = document.getElementById("canvas-height");
         this.btnSwapWh = document.getElementById("btn-swap-wh");
@@ -256,6 +257,11 @@ const UI = {
 
         this.btnReadH.addEventListener("click", () => App.handlePastedArray("horizontal"));
         this.btnReadV.addEventListener("click", () => App.handlePastedArray("vertical"));
+        this.btnClearPaste.addEventListener("click", () => {
+            UI.pasteInput.value = "";
+            UI.pasteError.classList.add("is-hidden");
+            UI.pasteInput.focus();
+        });
 
         const triggerElements = [
             this.canvasWidth,
