@@ -1,4 +1,3 @@
-import { applyUiTuningToFrame, applyUiTuningToFrames } from "../workflow/frames.js";
 import * as Frames from "../workflow/frames.js";
 
 const MIN_FRAME_DELAY_MS = 20;
@@ -16,11 +15,11 @@ export function applyUiTuning(params) {
 
     if (isPaused) {
         const activeFrame = frames[currentFrame];
-        applyUiTuningToFrame(activeFrame, uiTuning);
+        Frames.applyUiTuningToFrame(activeFrame, uiTuning);
         return;
     }
 
-    applyUiTuningToFrames(frames, uiTuning);
+    Frames.applyUiTuningToFrames(frames, uiTuning);
 }
 
 export function needsTimelineRebuild(params) {

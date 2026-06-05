@@ -1,15 +1,9 @@
 import { normalizeFrameTuning } from "../core/settings.js";
 
 let frames = [];
-let activeIndex = 0;
 let nextId = 1;
 
 export function getFrames() { return frames; }
-export function getActiveIndex() { return activeIndex; }
-export function setActiveIndex(i) {
-    if (frames.length === 0) { activeIndex = 0; return; }
-    activeIndex = ((i % frames.length) + frames.length) % frames.length;
-}
 export function isMultiFrame() { return frames.length > 1; }
 export function hasFrames() { return frames.length > 0; }
 
@@ -21,7 +15,6 @@ export function setFrames(list) {
         delayMs: Number.isFinite(f.delayMs) ? f.delayMs : 0,
         tuning: f.tuning || null,
     }));
-    activeIndex = 0;
     return frames;
 }
 
@@ -60,12 +53,12 @@ export function applyUiTuningToFrame(frame, uiTuning) {
     return target.tuning;
 }
 
-export function applyUiTuningToFrames(frames, uiTuning) {
-    if (!Array.isArray(frames)) {
+export function applyUiTuningToFrames(frameList, uiTuning) {
+    if (!Array.isArray(frameList)) {
         return;
     }
 
-    for (const frame of frames) {
+    for (const frame of frameList) {
         applyUiTuningToFrame(frame, uiTuning);
     }
 }
