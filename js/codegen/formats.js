@@ -65,8 +65,10 @@ export function formatAdafruitGfx(frames, safe) {
 
     out += `const GFXbitmapGlyph ${id}Glyphs [] PROGMEM = {\n`;
     out += frames.map((f, i) => {
-        const ch = allSingleChar ? f.name : String.fromCharCode(nextChar++);
+        const rawChar = allSingleChar ? f.name : String.fromCharCode(nextChar++);
+        const ch = rawChar.replace(/\\/g, "\\\\").replace(/'/g, "\\'"); // safe C char literal
         const line = `\t{ ${offset}, ${f.width}, ${f.height}, ${safe.xAdvance}, '${ch}' }`;
+        // offset is a byte offset; for mono1 each token is one byte, matching GFX's bitmap layout
         offset += f.tokens.length;
         return line + (i < frames.length - 1 ? "," : "") + ` // '${f.name}'`;
     }).join("\n");
