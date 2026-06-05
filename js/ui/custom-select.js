@@ -1,6 +1,5 @@
-(function initImage2CppCustomSelect(root) {
-    let customSelectBindingsReady = false;
-    let customSelectId = 0;
+let customSelectBindingsReady = false;
+let customSelectId = 0;
 
     function closeCustomSelect(wrapper) {
         wrapper.classList.remove("open");
@@ -234,15 +233,4 @@
         }
     }
 
-    const api = {
-        init,
-        closeAll: closeCustomSelects,
-        setIndex: setCustomSelectIndex,
-    };
-
-    if (typeof module !== "undefined" && module.exports) {
-        module.exports = api;
-    }
-
-    root.Image2CppCustomSelect = api;
-})(typeof globalThis !== "undefined" ? globalThis : this);
+export { init, closeCustomSelects as closeAll, setCustomSelectIndex as setIndex };

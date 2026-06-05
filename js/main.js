@@ -1,9 +1,22 @@
 /**
  * Image2Cpp Main Controller
- * Consolidated and state-driven UI logic.
+ * Slim ES-module controller wiring real implementations together.
  */
 
-const INITIAL_APP_STATE = {
+import { normalizeSettings, mergeFrameTuning, sanitizeVarName } from "./core/settings.js";
+import { Processor } from "./imaging/processor.js";
+import { generate } from "./codegen/generator.js";
+import * as CustomSelect from "./ui/custom-select.js";
+import { createThemeController } from "./ui/theme.js";
+import * as PreviewView from "./ui/preview-view.js";
+import * as Timeline from "./ui/timeline-view.js";
+import * as Frames from "./workflow/frames.js";
+import { createObjectUrl, revokeObjectUrl, revokeAll } from "./workflow/object-urls.js";
+
+const PREVIEW_RENDER_OPTIONS = { skipBinary: true };
+const PREVIEW_TIMING = { fast: 60, standard: 90, slider: 130, textCommit: 140 };
+
+const state = {
     gifTimer: null,
     livePreviewRafId: null,
     previewCommitTimer: null,
@@ -19,136 +32,17 @@ const INITIAL_APP_STATE = {
     isUpdatingSliders: false,
 };
 
-const PREVIEW_RENDER_OPTIONS = { skipBinary: true };
-const PREVIEW_TIMING = {
-    fast: 60,
-    standard: 90,
-    slider: 130,
-    textCommit: 140,
-};
+const UiTheme = createThemeController({
+    storageKey: "image2cpp.uiThemeMode",
+    attributeName: "data-app-theme",
+    defaultMode: "system",
+    modeSequence: ["system", "light", "dark"],
+});
 
-const AppStateStoreFactory = window.Image2CppStateStore;
-const AppStateStore = AppStateStoreFactory && typeof AppStateStoreFactory.create === "function"
-    ? AppStateStoreFactory.create(INITIAL_APP_STATE)
-    : null;
-const AppState = AppStateStore ? AppStateStore.state : Object.assign({}, INITIAL_APP_STATE);
-
-const SettingsContract = window.Image2CppSettings;
-const FrameTuningManager = window.Image2CppFrameManager;
-const UrlManagerFactory = window.Image2CppUrlManager;
-const PreviewServiceFactory = window.Image2CppPreviewService;
-const GifWorkflowServiceFactory = window.Image2CppGifWorkflowService;
-const CustomSelectController = window.Image2CppCustomSelect;
-const FileWorkflowServiceFactory = window.Image2CppFileWorkflowService;
-const UiThemeServiceFactory = window.Image2CppUiThemeService;
-const AnalyticsServiceFactory = window.Image2CppAnalyticsService;
-const VisitCounterServiceFactory = window.Image2CppVisitCounterService;
-const ActiveUrlManager = UrlManagerFactory && typeof UrlManagerFactory.create === "function"
-    ? UrlManagerFactory.create()
-    : null;
-const PreviewService = PreviewServiceFactory && typeof PreviewServiceFactory.create === "function"
-    ? PreviewServiceFactory.create({ processor: Processor })
-    : null;
-const GifWorkflowService = GifWorkflowServiceFactory && typeof GifWorkflowServiceFactory.create === "function"
-    ? GifWorkflowServiceFactory.create({ frameTuningManager: FrameTuningManager })
-    : null;
-const FileWorkflowService = FileWorkflowServiceFactory && typeof FileWorkflowServiceFactory.create === "function"
-    ? FileWorkflowServiceFactory.create({
-        processor: Processor,
-        settingsContract: SettingsContract,
-        createObjectUrl: createManagedObjectUrl,
-        revokeObjectUrl: revokeManagedObjectUrl,
-    })
-    : null;
-const UiThemeService = UiThemeServiceFactory && typeof UiThemeServiceFactory.create === "function"
-    ? UiThemeServiceFactory.create({
-        storageKey: "image2cpp.uiThemeMode",
-        attributeName: "data-app-theme",
-        defaultMode: "system",
-        modeSequence: ["system", "light", "dark"],
-    })
-    : null;
-const AnalyticsConfig = typeof window.Image2CppAnalyticsConfig === "object" && window.Image2CppAnalyticsConfig
-    ? window.Image2CppAnalyticsConfig
-    : {};
-const AnalyticsService = AnalyticsServiceFactory && typeof AnalyticsServiceFactory.create === "function"
-    ? AnalyticsServiceFactory.create(AnalyticsConfig)
-    : null;
-const VisitCounterConfig = typeof window.Image2CppVisitCounterConfig === "object" && window.Image2CppVisitCounterConfig
-    ? window.Image2CppVisitCounterConfig
-    : {};
-const VisitCounterService = VisitCounterServiceFactory && typeof VisitCounterServiceFactory.create === "function"
-    ? VisitCounterServiceFactory.create(VisitCounterConfig)
-    : null;
-
-const APP_THEME_MODE_LABELS = {
-    system: "System",
-    light: "Light",
-    dark: "Dark",
-};
-const VISIT_COUNTER_TIMEOUT_MS = 6500;
+const APP_THEME_MODE_LABELS = { system: "System", light: "Light", dark: "Dark" };
 
 function getAppThemeModeLabel(mode) {
     return APP_THEME_MODE_LABELS[mode] || APP_THEME_MODE_LABELS.dark;
-}
-
-function trackAnalytics(methodName, ...args) {
-    if (!AnalyticsService || typeof AnalyticsService[methodName] !== "function") {
-        return;
-    }
-
-    try {
-        AnalyticsService[methodName](...args);
-    } catch (error) {
-        // Analytics failures should never interrupt app flows.
-    }
-}
-
-function setAppStateValue(key, value) {
-    if (AppStateStore) {
-        AppStateStore.set(key, value);
-        return;
-    }
-
-    AppState[key] = value;
-}
-
-function patchAppStateValues(partial) {
-    if (!partial || typeof partial !== "object") {
-        return;
-    }
-
-    if (AppStateStore) {
-        AppStateStore.patch(partial);
-        return;
-    }
-
-    Object.assign(AppState, partial);
-}
-
-function createManagedObjectUrl(blob) {
-    if (!blob) {
-        return null;
-    }
-
-    if (ActiveUrlManager) {
-        return ActiveUrlManager.create(blob);
-    }
-
-    return URL.createObjectURL(blob);
-}
-
-function revokeManagedObjectUrl(url) {
-    if (!url) {
-        return;
-    }
-
-    if (ActiveUrlManager) {
-        ActiveUrlManager.revoke(url);
-        return;
-    }
-
-    URL.revokeObjectURL(url);
 }
 
 function prefersReducedMotion() {
@@ -158,18 +52,10 @@ function prefersReducedMotion() {
 }
 
 function clearScheduledPreview() {
-    if (AppState.previewCommitTimer) {
-        clearTimeout(AppState.previewCommitTimer);
-        setAppStateValue("previewCommitTimer", null);
-    }
-
-    if (
-        AppState.livePreviewRafId !== null
-        && AppState.livePreviewRafId !== undefined
-        && typeof cancelAnimationFrame === "function"
-    ) {
-        cancelAnimationFrame(AppState.livePreviewRafId);
-        setAppStateValue("livePreviewRafId", null);
+    if (state.previewCommitTimer) { clearTimeout(state.previewCommitTimer); state.previewCommitTimer = null; }
+    if (state.livePreviewRafId != null && typeof cancelAnimationFrame === "function") {
+        cancelAnimationFrame(state.livePreviewRafId);
+        state.livePreviewRafId = null;
     }
 }
 
@@ -211,7 +97,6 @@ const UI = {
         this.optVarName = document.getElementById("var-name");
         this.previewTheme = document.getElementById("preview-theme");
         this.appThemeToggle = document.getElementById("app-theme-toggle");
-        this.visitCount = document.getElementById("visit-count");
 
         this.previewCanvas = document.getElementById("preview-canvas");
         this.previewInfo = document.getElementById("preview-info");
@@ -260,26 +145,23 @@ const UI = {
         };
 
         this.btnFlipH.addEventListener("click", () => {
-            setAppStateValue("tFlipH", !AppState.tFlipH);
-            trackAnalytics("trackTransformation", "flip_h");
+            state.tFlipH = !state.tFlipH;
             doFastUpdate();
         });
 
         this.btnFlipV.addEventListener("click", () => {
-            setAppStateValue("tFlipV", !AppState.tFlipV);
-            trackAnalytics("trackTransformation", "flip_v");
+            state.tFlipV = !state.tFlipV;
             doFastUpdate();
         });
 
         this.btnRotate.addEventListener("click", () => {
-            setAppStateValue("tRotate", (AppState.tRotate + 90) % 360);
-            trackAnalytics("trackTransformation", "rotate_90");
+            state.tRotate = (state.tRotate + 90) % 360;
             doFastUpdate();
         });
 
         this.previewCanvas.addEventListener("click", () => {
             if (Processor.sourceIsGif) {
-                setAppStateValue("isPaused", !AppState.isPaused);
+                state.isPaused = !state.isPaused;
                 doFastUpdate();
             }
         });
@@ -289,7 +171,6 @@ const UI = {
                 const [width, height] = event.currentTarget.dataset.preset.split("x");
                 this.canvasWidth.value = width;
                 this.canvasHeight.value = height;
-                trackAnalytics("trackPreset", event.currentTarget.dataset.preset);
                 doFastUpdate();
             });
         });
@@ -362,22 +243,8 @@ const UI = {
                     App.reconcileControls();
                 }
 
-                if (AppState.isUpdatingSliders) {
+                if (state.isUpdatingSliders) {
                     return;
-                }
-
-                if (element === this.scaleSelect) {
-                    trackAnalytics("trackSettingChange", "scale_mode", this.scaleSelect.value);
-                } else if (element === this.optFormat) {
-                    trackAnalytics("trackSettingChange", "output_format", this.optFormat.value);
-                } else if (element === this.optDrawMode) {
-                    trackAnalytics("trackSettingChange", "draw_mode", this.optDrawMode.value);
-                } else if (element === this.previewTheme) {
-                    trackAnalytics("trackSettingChange", "preview_theme", this.previewTheme.value);
-                } else if (element === this.invertCheck) {
-                    trackAnalytics("trackTransformation", this.invertCheck.checked ? "invert_on" : "invert_off");
-                } else if (element === this.invertBgCheck) {
-                    trackAnalytics("trackTransformation", this.invertBgCheck.checked ? "invert_bg_on" : "invert_bg_off");
                 }
 
                 App.requestPreviewCycle(PREVIEW_TIMING.fast);
@@ -433,10 +300,6 @@ const UI = {
                 return;
             }
             navigator.clipboard.writeText(this.codeOutput.value).then(() => {
-                trackAnalytics("trackExport", "copy", {
-                    outputFormat: this.optFormat.value,
-                    drawMode: this.optDrawMode.value,
-                });
                 const originalHtml = this.btnCopy.innerHTML;
                 this.btnCopy.textContent = "Copied!";
                 setTimeout(() => {
@@ -451,7 +314,7 @@ const UI = {
             }
 
             const fileBlob = new Blob([this.codeOutput.value], { type: "text/plain" });
-            const downloadUrl = createManagedObjectUrl(fileBlob);
+            const downloadUrl = createObjectUrl(fileBlob);
             if (!downloadUrl) {
                 return;
             }
@@ -461,23 +324,14 @@ const UI = {
             link.download = `${this.optVarName.value || "byte array"}.h`;
             link.click();
 
-            trackAnalytics("trackExport", "download", {
-                outputFormat: this.optFormat.value,
-                drawMode: this.optDrawMode.value,
-            });
-
             setTimeout(() => {
-                revokeManagedObjectUrl(downloadUrl);
+                revokeObjectUrl(downloadUrl);
             }, 0);
         });
 
-        if (this.appThemeToggle && UiThemeService && typeof UiThemeService.cycleMode === "function") {
-            this.appThemeToggle.addEventListener("click", () => {
-                const snapshot = UiThemeService.cycleMode();
-                this.syncThemeToggle(snapshot);
-                trackAnalytics("trackThemeChange", snapshot.mode, snapshot.resolvedTheme);
-            });
-        }
+        this.appThemeToggle.addEventListener("click", () => {
+            UI.syncThemeToggle(UiTheme.cycleMode());
+        });
     },
 
     syncThemeToggle(snapshot) {
@@ -500,44 +354,11 @@ const UI = {
         this.appThemeToggle.title = `${buttonText} (${resolvedTheme})`;
         this.appThemeToggle.setAttribute("aria-label", `Theme: ${modeLabel} (${resolvedTheme})`);
     },
-
-    syncVisitCount(snapshot) {
-        if (!this.visitCount) {
-            return;
-        }
-
-        const safeSnapshot = snapshot || {};
-        const value = Number(safeSnapshot.value);
-
-        if (safeSnapshot.loading === true) {
-            this.visitCount.textContent = "Visits: ...";
-            this.visitCount.dataset.state = "loading";
-            this.visitCount.setAttribute("aria-label", "Unique visits: loading");
-            this.visitCount.title = "Unique visits";
-            return;
-        }
-
-        if (Number.isFinite(value) && value >= 0) {
-            const safeValue = Math.floor(value);
-            const formatted = safeValue.toLocaleString();
-
-            this.visitCount.textContent = `Visits: ${formatted}`;
-            this.visitCount.dataset.state = "ready";
-            this.visitCount.setAttribute("aria-label", `Unique visits: ${formatted}`);
-            this.visitCount.title = "Unique visits";
-            return;
-        }
-
-        this.visitCount.textContent = "Visits: --";
-        this.visitCount.dataset.state = "unavailable";
-        this.visitCount.setAttribute("aria-label", "Unique visits unavailable");
-        this.visitCount.title = "Unique visits unavailable";
-    },
 };
 
 const App = {
     requestLivePreview() {
-        if (AppState.livePreviewRafId !== null && AppState.livePreviewRafId !== undefined) {
+        if (state.livePreviewRafId !== null && state.livePreviewRafId !== undefined) {
             return;
         }
 
@@ -547,10 +368,10 @@ const App = {
         }
 
         const rafId = requestAnimationFrame(() => {
-            setAppStateValue("livePreviewRafId", null);
+            state.livePreviewRafId = null;
             this.updatePreview(true);
         });
-        setAppStateValue("livePreviewRafId", rafId);
+        state.livePreviewRafId = rafId;
     },
 
     scheduleCommittedPreview(delay) {
@@ -558,16 +379,16 @@ const App = {
             ? Math.max(0, Number(delay))
             : PREVIEW_TIMING.standard;
 
-        if (AppState.previewCommitTimer) {
-            clearTimeout(AppState.previewCommitTimer);
+        if (state.previewCommitTimer) {
+            clearTimeout(state.previewCommitTimer);
         }
 
         const timerId = setTimeout(() => {
-            setAppStateValue("previewCommitTimer", null);
+            state.previewCommitTimer = null;
             this.updatePreview(false);
         }, commitDelay);
 
-        setAppStateValue("previewCommitTimer", timerId);
+        state.previewCommitTimer = timerId;
     },
 
     requestPreviewCycle(delay) {
@@ -576,124 +397,54 @@ const App = {
     },
 
     init() {
-        let initialThemeSnapshot = null;
-        if (UiThemeService && typeof UiThemeService.init === "function") {
-            initialThemeSnapshot = UiThemeService.init();
-        }
-
+        const initialThemeSnapshot = UiTheme.init();
         UI.init();
-        if (CustomSelectController && typeof CustomSelectController.init === "function") {
-            CustomSelectController.init();
-        }
+        CustomSelect.init();
         this.reconcileControls();
-
-        if (UiThemeService && typeof UiThemeService.subscribe === "function") {
-            UiThemeService.subscribe((snapshot) => {
-                UI.syncThemeToggle(snapshot);
-            });
-            UI.syncThemeToggle(initialThemeSnapshot || UiThemeService.getSnapshot());
-        } else {
-            UI.syncThemeToggle();
-        }
-
-        trackAnalytics("trackPageView");
-
-        if (VisitCounterService && typeof VisitCounterService.getUniqueVisitCount === "function") {
-            let hasResolvedVisitCounter = false;
-
-            const settleVisitCounter = (snapshot) => {
-                if (hasResolvedVisitCounter) {
-                    return;
-                }
-
-                hasResolvedVisitCounter = true;
-                UI.syncVisitCount(snapshot);
-            };
-
-            UI.syncVisitCount({ loading: true });
-
-            const timeoutId = setTimeout(() => {
-                settleVisitCounter({ value: null });
-            }, VISIT_COUNTER_TIMEOUT_MS);
-
-            VisitCounterService.getUniqueVisitCount()
-                .then((snapshot) => {
-                    clearTimeout(timeoutId);
-                    settleVisitCounter(snapshot);
-                })
-                .catch(() => {
-                    clearTimeout(timeoutId);
-                    settleVisitCounter({ value: null });
-                });
-        } else {
-            UI.syncVisitCount({ value: null });
-        }
-
-        if (ActiveUrlManager) {
-            window.addEventListener("beforeunload", () => {
-                ActiveUrlManager.revokeAll();
-            });
-        }
-
+        UiTheme.subscribe((snapshot) => UI.syncThemeToggle(snapshot));
+        UI.syncThemeToggle(initialThemeSnapshot || UiTheme.getSnapshot());
+        window.addEventListener("beforeunload", () => revokeAll());
         this.updatePreview();
     },
 
     handleFile(file) {
         clearScheduledPreview();
 
-        const isSupportedImage = FileWorkflowService && typeof FileWorkflowService.isSupportedImage === "function"
-            ? FileWorkflowService.isSupportedImage(file)
-            : Boolean(file && typeof file.type === "string" && file.type.startsWith("image/"));
+        const isSupportedImage = Boolean(file && typeof file.type === "string" && file.type.startsWith("image/"));
 
         if (!isSupportedImage) {
             alert("Only images are supported.");
             return;
         }
 
-        trackAnalytics("trackFileUpload", file);
+        revokeAll();
 
-        if (ActiveUrlManager) {
-            ActiveUrlManager.revokeAll();
-        }
-
-        const safeVarName = FileWorkflowService && typeof FileWorkflowService.getSafeVariableName === "function"
-            ? FileWorkflowService.getSafeVariableName(file.name, "byte array")
-            : (file.name || "")
-                .split(".")
-                .slice(0, -1)
-                .join(".")
-                .replace(/[^a-zA-Z0-9_]/g, "_")
-                .replace(/^[0-9]/, "_$&");
+        const safeVarName = sanitizeVarName(
+            (file.name || "").split(".").slice(0, -1).join("."),
+            "byte array",
+        );
         if (safeVarName) {
             UI.optVarName.value = safeVarName;
         }
 
-        patchAppStateValues({
+        Object.assign(state, {
             currentFrame: 0,
             isPaused: false,
         });
 
-        if (AppState.gifTimer) {
-            clearTimeout(AppState.gifTimer);
-            setAppStateValue("gifTimer", null);
-        }
-
-        if (FileWorkflowService && typeof FileWorkflowService.loadFile === "function") {
-            const loaded = FileWorkflowService.loadFile(file, () => this.updatePreview());
-            if (!loaded) {
-                alert("Unable to load this file.");
-            }
-            return;
+        if (state.gifTimer) {
+            clearTimeout(state.gifTimer);
+            state.gifTimer = null;
         }
 
         if (file.type !== "image/gif") {
-            const objectUrl = createManagedObjectUrl(file);
+            const objectUrl = createObjectUrl(file);
             if (!objectUrl) {
                 return;
             }
 
             Processor.loadImage(objectUrl, () => {
-                revokeManagedObjectUrl(objectUrl);
+                revokeObjectUrl(objectUrl);
                 this.updatePreview();
             });
             return;
@@ -711,13 +462,13 @@ const App = {
                     Processor.loadGif(event.target.result, () => this.updatePreview());
                 } catch (error) {
                     console.error("GIF parsing failed. Falling back to static preview.", error);
-                    const fallbackUrl = createManagedObjectUrl(file);
+                    const fallbackUrl = createObjectUrl(file);
                     if (!fallbackUrl) {
                         return;
                     }
 
                     Processor.loadImage(fallbackUrl, () => {
-                        revokeManagedObjectUrl(fallbackUrl);
+                        revokeObjectUrl(fallbackUrl);
                         this.updatePreview();
                     });
                 }
@@ -748,37 +499,16 @@ const App = {
             bitSwap: UI.bitSwapCheck ? UI.bitSwapCheck.checked : false,
             invert: UI.invertCheck.checked,
             invertBg: UI.invertBgCheck.checked,
-            flipH: AppState.tFlipH,
-            flipV: AppState.tFlipV,
-            rotate: AppState.tRotate,
+            flipH: state.tFlipH,
+            flipV: state.tFlipV,
+            rotate: state.tRotate,
             outputFormat: UI.optFormat.value,
             drawMode: UI.optDrawMode.value,
             varName: UI.optVarName.value || "byte array",
             theme: UI.previewTheme.value,
         };
 
-        const base = SettingsContract && typeof SettingsContract.normalizeSettings === "function"
-            ? SettingsContract.normalizeSettings(baseRaw)
-            : {
-                width: parseInt(UI.canvasWidth.value, 10) || 128,
-                height: parseInt(UI.canvasHeight.value, 10) || 64,
-                scale: UI.scaleSelect.value,
-                smoothScaling: UI.smoothScaleCheck ? UI.smoothScaleCheck.checked : true,
-                contrast: parseInt(UI.contrastInput.value, 10),
-                threshold: parseInt(UI.thresholdInput.value, 10),
-                dither: UI.optDither ? UI.optDither.value : "binary",
-                pixelFormat: UI.optPixelFormat ? UI.optPixelFormat.value : "mono1",
-                bitSwap: UI.bitSwapCheck ? UI.bitSwapCheck.checked : false,
-                invert: UI.invertCheck.checked,
-                invertBg: UI.invertBgCheck.checked,
-                flipH: AppState.tFlipH,
-                flipV: AppState.tFlipV,
-                rotate: AppState.tRotate,
-                outputFormat: UI.optFormat.value,
-                drawMode: UI.optDrawMode.value,
-                varName: UI.optVarName.value || "byte array",
-                theme: UI.previewTheme.value,
-            };
+        const base = normalizeSettings(baseRaw);
 
         if (
             Processor.sourceIsGif &&
@@ -786,11 +516,7 @@ const App = {
             Processor.gifFrames[frameIndex] &&
             Processor.gifFrames[frameIndex].tuning
         ) {
-            if (SettingsContract && typeof SettingsContract.mergeFrameTuning === "function") {
-                return SettingsContract.mergeFrameTuning(base, Processor.gifFrames[frameIndex].tuning);
-            }
-
-            return Object.assign({}, base, Processor.gifFrames[frameIndex].tuning);
+            return mergeFrameTuning(base, Processor.gifFrames[frameIndex].tuning);
         }
 
         return base;
@@ -801,11 +527,9 @@ const App = {
             return;
         }
 
-        setAppStateValue("isUpdatingSliders", true);
+        state.isUpdatingSliders = true;
 
-        const tuning = FrameTuningManager && typeof FrameTuningManager.readFrameTuning === "function"
-            ? FrameTuningManager.readFrameTuning(Processor.gifFrames[index])
-            : (Processor.gifFrames[index].tuning || {});
+        const tuning = Frames.readFrameTuning(Processor.gifFrames[index]);
 
         UI.contrastInput.value = tuning.contrast !== undefined ? tuning.contrast : 0;
         UI.contrastVal.textContent = UI.contrastInput.value;
@@ -814,174 +538,63 @@ const App = {
         UI.invertCheck.checked = tuning.invert !== undefined ? tuning.invert : false;
         UI.invertBgCheck.checked = tuning.invertBg !== undefined ? tuning.invertBg : false;
 
-        setAppStateValue("isUpdatingSliders", false);
+        state.isUpdatingSliders = false;
     },
 
     setActiveTimelineEntry(activeIndex) {
-        if (PreviewService && typeof PreviewService.setTimelineActive === "function") {
-            PreviewService.setTimelineActive(UI.timeline, activeIndex);
-            return;
-        }
-
-        Array.from(UI.timeline.children).forEach((element, index) => {
-            element.classList.toggle("active", index === activeIndex);
-        });
+        PreviewView.setTimelineActive(UI.timeline, activeIndex);
     },
 
     syncPresetButtons(settings) {
-        if (PreviewService && typeof PreviewService.setPresetActiveButtons === "function") {
-            PreviewService.setPresetActiveButtons(UI.presetBtns, settings.width, settings.height);
-            return;
-        }
-
-        UI.presetBtns.forEach((button) => {
-            const [width, height] = button.dataset.preset.split("x");
-            const isActive =
-                parseInt(width, 10) === settings.width &&
-                parseInt(height, 10) === settings.height;
-            button.classList.toggle("active", isActive);
-        });
+        PreviewView.setPresetActiveButtons(UI.presetBtns, settings.width, settings.height);
     },
 
     syncPreviewSurface(settings) {
-        if (PreviewService && typeof PreviewService.syncPreviewSurface === "function") {
-            PreviewService.syncPreviewSurface(
-                UI.previewCanvas,
-                UI.timeline,
-                Processor.sourceIsGif,
-                settings.width,
-                settings.height,
-            );
-            return;
-        }
-
-        UI.previewCanvas.width = settings.width;
-        UI.previewCanvas.height = settings.height;
-        UI.previewCanvas.classList.toggle("is-gif", Processor.sourceIsGif);
-        UI.timeline.classList.toggle("is-hidden", !Processor.sourceIsGif);
-    },
-
-    renderToCanvas(canvas, source, settings, options) {
-        if (PreviewService && typeof PreviewService.renderToCanvas === "function") {
-            return PreviewService.renderToCanvas(canvas, source, settings, options);
-        }
-
-        return Processor.processFrame(canvas, source, settings, options);
+        PreviewView.syncPreviewSurface(
+            UI.previewCanvas,
+            UI.timeline,
+            Processor.sourceIsGif,
+            settings.width,
+            settings.height,
+        );
     },
 
     renderSingleThumbnail(index) {
-        if (GifWorkflowService && typeof GifWorkflowService.renderSingleThumbnail === "function") {
-            const rendered = GifWorkflowService.renderSingleThumbnail({
-                timeline: UI.timeline,
-                frames: Processor.gifFrames,
-                index,
-                getSettings: (frameIndex) => this.getSettings(frameIndex),
-                renderToCanvas: (canvas, source, settings) => this.renderToCanvas(
-                    canvas,
-                    source,
-                    settings,
-                    PREVIEW_RENDER_OPTIONS,
-                ),
-            });
-            if (rendered) {
-                return;
-            }
-        }
-
-        if (UI.timeline.children.length <= index + 1) {
-            return;
-        }
-
-        const thumb = UI.timeline.children[index + 1].querySelector("canvas");
-        if (thumb) {
-            this.renderToCanvas(
-                thumb,
-                Processor.gifFrames[index].imgData,
-                this.getSettings(index),
+        Timeline.renderSingleThumbnail({
+            timeline: UI.timeline,
+            frames: Processor.gifFrames,
+            index,
+            getSettings: (frameIndex) => this.getSettings(frameIndex),
+            renderToCanvas: (canvas, source, settings) => Processor.processFrame(
+                canvas,
+                source,
+                settings,
                 PREVIEW_RENDER_OPTIONS,
-            );
-        }
+            ),
+        });
     },
 
     playGif() {
         if (prefersReducedMotion()) {
-            setAppStateValue("isPaused", true);
+            state.isPaused = true;
             return;
         }
 
-        if (GifWorkflowService && typeof GifWorkflowService.startPlayback === "function") {
-            GifWorkflowService.startPlayback({
-                appState: AppState,
-                setStateValue: (key, value) => setAppStateValue(key, value),
-                processor: Processor,
-                getSettings: (frameIndex) => this.getSettings(frameIndex),
-                renderToCanvas: (canvas, source, settings) => this.renderToCanvas(
-                    canvas,
-                    source,
-                    settings,
-                    PREVIEW_RENDER_OPTIONS,
-                ),
-                previewCanvas: UI.previewCanvas,
-                previewInfo: UI.previewInfo,
-                setActiveTimelineEntry: (activeIndex) => this.setActiveTimelineEntry(activeIndex),
-            });
-            return;
-        }
-
-        if (AppState.gifTimer) {
-            clearTimeout(AppState.gifTimer);
-            setAppStateValue("gifTimer", null);
-        }
-
-        const normalizeFrameIndex = (index, length) => {
-            if (!Number.isInteger(index) || length <= 0) {
-                return 0;
-            }
-
-            return ((index % length) + length) % length;
-        };
-
-        const renderNextFrame = (requestedIndex) => {
-            if (!Processor.sourceIsGif) {
-                return;
-            }
-
-            const frameCount = Processor.gifFrames.length;
-            if (frameCount === 0) {
-                setAppStateValue("gifTimer", null);
-                return;
-            }
-
-            if (!AppState.isPaused) {
-                const frameIndex = normalizeFrameIndex(requestedIndex, frameCount);
-                const frame = Processor.gifFrames[frameIndex];
-                setAppStateValue("currentFrame", frameIndex);
-
-                const settings = this.getSettings(frameIndex);
-
-                this.renderToCanvas(UI.previewCanvas, frame.imgData, settings, PREVIEW_RENDER_OPTIONS);
-                UI.previewInfo.textContent = `${settings.width} × ${settings.height} | GIF: ${frameIndex + 1}/${frameCount} fr`;
-
-                this.setActiveTimelineEntry(0);
-
-                let delay = frame.delay * 10 || 100;
-                if (delay < 20) {
-                    delay = 100;
-                }
-
-                const nextFrame = (frameIndex + 1) % frameCount;
-                setAppStateValue("gifTimer", setTimeout(() => {
-                    renderNextFrame(nextFrame);
-                }, delay));
-            } else {
-                const frameIndex = normalizeFrameIndex(AppState.currentFrame, frameCount);
-                const settings = this.getSettings(frameIndex);
-                UI.previewInfo.textContent = `${settings.width} × ${settings.height} | GIF: ${frameIndex + 1}/${frameCount} fr (Paused)`;
-                setAppStateValue("gifTimer", null);
-            }
-        };
-
-        renderNextFrame(AppState.currentFrame);
+        Timeline.startPlayback({
+            appState: state,
+            setStateValue: (key, value) => { state[key] = value; },
+            processor: Processor,
+            getSettings: (frameIndex) => this.getSettings(frameIndex),
+            renderToCanvas: (canvas, source, settings) => Processor.processFrame(
+                canvas,
+                source,
+                settings,
+                PREVIEW_RENDER_OPTIONS,
+            ),
+            previewCanvas: UI.previewCanvas,
+            previewInfo: UI.previewInfo,
+            setActiveTimelineEntry: (activeIndex) => this.setActiveTimelineEntry(activeIndex),
+        });
     },
 
     setControlDisabled(element, disabled, wrapTarget) {
@@ -1017,13 +630,8 @@ const App = {
             return;
         }
         const wrapper = select.nextElementSibling;
-        if (
-            CustomSelectController
-            && typeof CustomSelectController.setIndex === "function"
-            && wrapper
-            && wrapper.classList.contains("custom-select-wrapper")
-        ) {
-            CustomSelectController.setIndex(select, wrapper, index, false);
+        if (wrapper && wrapper.classList.contains("custom-select-wrapper")) {
+            CustomSelect.setIndex(select, wrapper, index, false);
         } else {
             select.selectedIndex = index;
         }
@@ -1047,16 +655,16 @@ const App = {
     },
 
     updatePreview(isLive = false) {
-        if (AppState.isUpdatingSliders || AppState.isRendering) {
+        if (state.isUpdatingSliders || state.isRendering) {
             return;
         }
-        setAppStateValue("isRendering", true);
+        state.isRendering = true;
         try {
-            if (prefersReducedMotion() && Processor.sourceIsGif && !AppState.isPaused) {
-                setAppStateValue("isPaused", true);
+            if (prefersReducedMotion() && Processor.sourceIsGif && !state.isPaused) {
+                state.isPaused = true;
             }
 
-            const currentSettings = this.getSettings(AppState.isPaused ? AppState.currentFrame : -1);
+            const currentSettings = this.getSettings(state.isPaused ? state.currentFrame : -1);
 
             this.syncPresetButtons(currentSettings);
 
@@ -1073,151 +681,105 @@ const App = {
             if (Processor.sourceIsGif) {
                 const uiTuning = this.getUiTuningSnapshot();
 
-                if (GifWorkflowService && typeof GifWorkflowService.applyUiTuning === "function") {
-                    GifWorkflowService.applyUiTuning({
-                        frames: Processor.gifFrames,
-                        isPaused: AppState.isPaused,
-                        currentFrame: AppState.currentFrame,
-                        uiTuning,
-                    });
-                } else if (AppState.isPaused) {
-                    const activeFrame = Processor.gifFrames[AppState.currentFrame];
-                    if (FrameTuningManager && typeof FrameTuningManager.applyUiTuningToFrame === "function") {
-                        FrameTuningManager.applyUiTuningToFrame(activeFrame, uiTuning);
-                    } else if (activeFrame) {
-                        activeFrame.tuning = Object.assign({}, activeFrame.tuning || {}, uiTuning);
-                    }
-                } else {
-                    if (FrameTuningManager && typeof FrameTuningManager.applyUiTuningToFrames === "function") {
-                        FrameTuningManager.applyUiTuningToFrames(Processor.gifFrames, uiTuning);
-                    } else {
-                        Processor.gifFrames.forEach((frame) => {
-                            frame.tuning = Object.assign({}, frame.tuning || {}, uiTuning);
-                        });
-                    }
-                }
+                Timeline.applyUiTuning({
+                    frames: Processor.gifFrames,
+                    isPaused: state.isPaused,
+                    currentFrame: state.currentFrame,
+                    uiTuning,
+                });
 
-                const needsRebuild = GifWorkflowService && typeof GifWorkflowService.needsTimelineRebuild === "function"
-                    ? GifWorkflowService.needsTimelineRebuild({
-                        timeline: UI.timeline,
-                        currentSettings,
-                        lastW: AppState.lastW,
-                        lastH: AppState.lastH,
-                        lastScale: AppState.lastScale,
-                    })
-                    : (
-                        UI.timeline.children.length === 0 ||
-                        currentSettings.width !== AppState.lastW ||
-                        currentSettings.height !== AppState.lastH ||
-                        currentSettings.scale !== AppState.lastScale
-                    );
+                const needsRebuild = Timeline.needsTimelineRebuild({
+                    timeline: UI.timeline,
+                    currentSettings,
+                    lastW: state.lastW,
+                    lastH: state.lastH,
+                    lastScale: state.lastScale,
+                });
 
                 if (needsRebuild) {
-                    if (GifWorkflowService && typeof GifWorkflowService.rebuildTimeline === "function") {
-                        GifWorkflowService.rebuildTimeline({
-                            timeline: UI.timeline,
-                            frames: Processor.gifFrames,
-                            isPaused: AppState.isPaused,
-                            currentFrame: AppState.currentFrame,
-                            currentSettings,
-                            getSettings: (frameIndex) => this.getSettings(frameIndex),
-                            renderToCanvas: (canvas, source, settings) => this.renderToCanvas(
-                                canvas,
-                                source,
-                                settings,
-                                PREVIEW_RENDER_OPTIONS,
-                            ),
-                            onPlayAll: () => {
-                                setAppStateValue("isPaused", false);
-                                this.applyFrameSlidersToUI(0);
-                                this.requestPreviewCycle(PREVIEW_TIMING.standard);
-                            },
-                            onSelectFrame: (index, frame) => {
-                                patchAppStateValues({
-                                    isPaused: true,
-                                    currentFrame: index,
-                                });
-                                this.applyFrameSlidersToUI(index);
-                                this.renderToCanvas(
-                                    UI.previewCanvas,
-                                    frame.imgData,
-                                    this.getSettings(index),
-                                    PREVIEW_RENDER_OPTIONS,
-                                );
-
-                                this.setActiveTimelineEntry(index + 1);
-
-                                this.scheduleCommittedPreview(PREVIEW_TIMING.standard);
-                            },
-                        });
-                    } else {
-                        UI.timeline.innerHTML = "";
-                    }
-                } else {
-                    if (GifWorkflowService && typeof GifWorkflowService.refreshTimelineThumbnails === "function") {
-                        GifWorkflowService.refreshTimelineThumbnails({
-                            timeline: UI.timeline,
-                            frames: Processor.gifFrames,
-                            isPaused: AppState.isPaused,
-                            currentFrame: AppState.currentFrame,
-                            isLive,
-                            getSettings: (frameIndex) => this.getSettings(frameIndex),
-                            renderToCanvas: (canvas, source, settings) => this.renderToCanvas(
-                                canvas,
-                                source,
-                                settings,
-                                PREVIEW_RENDER_OPTIONS,
-                            ),
-                            requestFrame: typeof requestAnimationFrame === "function"
-                                ? requestAnimationFrame
-                                : null,
-                        });
-                    } else if (AppState.isPaused) {
-                        this.renderSingleThumbnail(AppState.currentFrame);
-                    } else if (!isLive) {
-                        for (let i = 0; i < Processor.gifFrames.length; i += 1) {
-                            this.renderSingleThumbnail(i);
-                        }
-
-                        const animationCanvas = UI.timeline.children[0]?.querySelector("canvas");
-                        if (animationCanvas) {
-                            this.renderToCanvas(
-                                animationCanvas,
-                                Processor.gifFrames[0].imgData,
-                                this.getSettings(0),
+                    Timeline.rebuildTimeline({
+                        timeline: UI.timeline,
+                        frames: Processor.gifFrames,
+                        isPaused: state.isPaused,
+                        currentFrame: state.currentFrame,
+                        currentSettings,
+                        getSettings: (frameIndex) => this.getSettings(frameIndex),
+                        renderToCanvas: (canvas, source, settings) => Processor.processFrame(
+                            canvas,
+                            source,
+                            settings,
+                            PREVIEW_RENDER_OPTIONS,
+                        ),
+                        onPlayAll: () => {
+                            state.isPaused = false;
+                            this.applyFrameSlidersToUI(0);
+                            this.requestPreviewCycle(PREVIEW_TIMING.standard);
+                        },
+                        onSelectFrame: (index, frame) => {
+                            Object.assign(state, {
+                                isPaused: true,
+                                currentFrame: index,
+                            });
+                            this.applyFrameSlidersToUI(index);
+                            Processor.processFrame(
+                                UI.previewCanvas,
+                                frame.imgData,
+                                this.getSettings(index),
                                 PREVIEW_RENDER_OPTIONS,
                             );
-                        }
-                    }
+
+                            this.setActiveTimelineEntry(index + 1);
+
+                            this.scheduleCommittedPreview(PREVIEW_TIMING.standard);
+                        },
+                    });
+                } else {
+                    Timeline.refreshTimelineThumbnails({
+                        timeline: UI.timeline,
+                        frames: Processor.gifFrames,
+                        isPaused: state.isPaused,
+                        currentFrame: state.currentFrame,
+                        isLive,
+                        getSettings: (frameIndex) => this.getSettings(frameIndex),
+                        renderToCanvas: (canvas, source, settings) => Processor.processFrame(
+                            canvas,
+                            source,
+                            settings,
+                            PREVIEW_RENDER_OPTIONS,
+                        ),
+                        requestFrame: typeof requestAnimationFrame === "function"
+                            ? requestAnimationFrame
+                            : null,
+                    });
                 }
 
-                if (AppState.isPaused) {
-                    this.renderToCanvas(
+                if (state.isPaused) {
+                    Processor.processFrame(
                         UI.previewCanvas,
-                        Processor.gifFrames[AppState.currentFrame].imgData,
-                        this.getSettings(AppState.currentFrame),
+                        Processor.gifFrames[state.currentFrame].imgData,
+                        this.getSettings(state.currentFrame),
                         PREVIEW_RENDER_OPTIONS,
                     );
 
-                    this.setActiveTimelineEntry(AppState.currentFrame + 1);
-                } else if (!AppState.gifTimer) {
+                    this.setActiveTimelineEntry(state.currentFrame + 1);
+                } else if (!state.gifTimer) {
                     this.playGif();
                 }
 
-                patchAppStateValues({
+                Object.assign(state, {
                     lastW: currentSettings.width,
                     lastH: currentSettings.height,
                     lastScale: currentSettings.scale,
                 });
             } else {
-                this.renderToCanvas(UI.previewCanvas, Processor.sourceImage, currentSettings, PREVIEW_RENDER_OPTIONS);
+                Processor.processFrame(UI.previewCanvas, Processor.sourceImage, currentSettings, PREVIEW_RENDER_OPTIONS);
             }
 
             if (!isLive) {
-                UI.codeOutput.value = Generator.generate(globalSettings);
+                UI.codeOutput.value = generate(globalSettings);
             }
         } finally {
-            setAppStateValue("isRendering", false);
+            state.isRendering = false;
         }
     },
 };

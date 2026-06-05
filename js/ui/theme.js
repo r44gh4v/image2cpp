@@ -1,5 +1,4 @@
-(function initImage2CppUiThemeService(root) {
-    const DEFAULT_STORAGE_KEY = "image2cpp.uiThemeMode";
+const DEFAULT_STORAGE_KEY = "image2cpp.uiThemeMode";
     const DEFAULT_MODE = "system";
     const DEFAULT_SEQUENCE = ["system", "light", "dark"];
     const DARK_SCHEME_QUERY = "(prefers-color-scheme: dark)";
@@ -48,7 +47,7 @@
         }
     }
 
-    function create(options) {
+export function createThemeController(options) {
         const config = options || {};
         const storageKey = typeof config.storageKey === "string" && config.storageKey
             ? config.storageKey
@@ -171,22 +170,13 @@
             writeStorage(storage, storageKey, mode);
         }
 
-        function setMode(nextMode, optionsSetMode) {
-            const optionsSafe = optionsSetMode || {};
-            mode = normalizeMode(nextMode, mode);
-
-            if (optionsSafe.persist !== false) {
-                persistMode();
-            }
-
-            return syncFromMode(optionsSafe.notify !== false);
-        }
-
         function cycleMode() {
             const currentIndex = modeSequence.indexOf(mode);
             const safeIndex = currentIndex >= 0 ? currentIndex : 0;
             const nextMode = modeSequence[(safeIndex + 1) % modeSequence.length];
-            return setMode(nextMode, { persist: true, notify: true });
+            mode = normalizeMode(nextMode, mode);
+            persistMode();
+            return syncFromMode(true);
         }
 
         function init() {
@@ -206,35 +196,10 @@
             };
         }
 
-        function destroy() {
-            if (detachSystemThemeListener) {
-                detachSystemThemeListener();
-                detachSystemThemeListener = null;
-            }
-            listeners.clear();
-        }
-
         return {
             init,
             getSnapshot,
-            getMode: () => mode,
-            getResolvedTheme: () => resolvedTheme,
-            setMode,
             cycleMode,
             subscribe,
-            destroy,
         };
     }
-
-    const api = {
-        DEFAULT_MODE,
-        DEFAULT_SEQUENCE,
-        create,
-    };
-
-    if (typeof module !== "undefined" && module.exports) {
-        module.exports = api;
-    }
-
-    root.Image2CppUiThemeService = api;
-})(typeof globalThis !== "undefined" ? globalThis : this);
