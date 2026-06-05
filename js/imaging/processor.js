@@ -104,18 +104,23 @@ function buildColorMap(imageData, width, height, safe, build, is565) {
         r = Math.round(r); g = Math.round(g); b = Math.round(b);
         if (invert) { r = 255 - r; g = 255 - g; b = 255 - b; }
 
-        let pr;
-        let pg;
-        let pb;
+        // Storage packing stays keyed on the OUTPUT format (is565) so byte-array
+        // output is unchanged.
         if (is565) {
             const packed = ((r & 0xF8) << 8) | ((g & 0xFC) << 3) | ((b & 0xF8) >> 3);
             if (build) rgb565Data[pIdx] = packed;
-            pr = r & 0xF8; pg = g & 0xFC; pb = b & 0xF8;
         } else {
             const packed = ((r & 0xFF) << 16) | ((g & 0xFF) << 8) | (b & 0xFF);
             if (build) rgb888Data[pIdx] = packed >>> 0;
-            pr = r; pg = g; pb = b;
         }
+
+        // PREVIEW pixels are decoupled from storage: 565-output always previews
+        // the truncated 5/6/5 look, and on an 888 array the user can opt into
+        // the "565 Simulated" preview via theme without changing stored data.
+        const trunc = is565 || safe.theme === "rgb-565";
+        const pr = trunc ? (r & 0xF8) : r;
+        const pg = trunc ? (g & 0xFC) : g;
+        const pb = trunc ? (b & 0xF8) : b;
         data[i] = pr; data[i + 1] = pg; data[i + 2] = pb; data[i + 3] = 255;
     }
 

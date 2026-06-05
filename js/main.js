@@ -91,6 +91,7 @@ const UI = {
 
         this.invertCheck = document.getElementById("setting-invert");
         this.invertBgCheck = document.getElementById("setting-invert-bg");
+        this.invertBgWrap = document.getElementById("wrap-invert-bg");
 
         // Always start with both inversion toggles disabled.
         this.invertCheck.checked = false;
@@ -113,6 +114,7 @@ const UI = {
         }
         this.optVarName = document.getElementById("var-name");
         this.previewTheme = document.getElementById("preview-theme");
+        this.previewThemeRgb = document.getElementById("preview-theme-rgb");
         this.appThemeToggle = document.getElementById("app-theme-toggle");
 
         this.previewCanvas = document.getElementById("preview-canvas");
@@ -268,6 +270,7 @@ const UI = {
             this.optDither,
             this.bitSwapCheck,
             this.previewTheme,
+            this.previewThemeRgb,
             this.gfxFirstAscii,
             this.gfxXAdvance,
         ];
@@ -491,6 +494,8 @@ const App = {
     },
 
     getSettings(frameIndex = -1) {
+        const pixelFormat = UI.optPixelFormat ? UI.optPixelFormat.value : "mono1";
+        const isColor = pixelFormat === "rgb565" || pixelFormat === "rgb888";
         const baseRaw = {
             width: UI.canvasWidth.value,
             height: UI.canvasHeight.value,
@@ -499,7 +504,7 @@ const App = {
             contrast: UI.contrastInput.value,
             threshold: UI.thresholdInput.value,
             dither: UI.optDither ? UI.optDither.value : "binary",
-            pixelFormat: UI.optPixelFormat ? UI.optPixelFormat.value : "mono1",
+            pixelFormat: pixelFormat,
             bitSwap: UI.bitSwapCheck ? UI.bitSwapCheck.checked : false,
             invert: UI.invertCheck.checked,
             invertBg: UI.invertBgCheck.checked,
@@ -509,7 +514,7 @@ const App = {
             outputFormat: UI.optFormat.value,
             drawMode: UI.optDrawMode.value,
             varName: UI.optVarName.value || "byte array",
-            theme: UI.previewTheme.value,
+            theme: isColor ? UI.previewThemeRgb.value : UI.previewTheme.value,
             firstAsciiChar: UI.gfxFirstAscii ? UI.gfxFirstAscii.value : 48,
             xAdvance: UI.gfxXAdvance ? UI.gfxXAdvance.value : 0,
         };
@@ -659,6 +664,26 @@ const App = {
         this.setControlDisabled(UI.thresholdInput, isColor, UI.thresholdInput.closest(".setting-group"));
         this.setControlDisabled(UI.contrastInput, isAlpha, UI.contrastInput.closest(".setting-group"));
         this.setControlDisabled(UI.bitSwapCheck, isColor, UI.bitSwapWrap);
+
+        // Context-aware preview picker: show the mono picker for mono/alpha and
+        // the RGB picker for color formats. Toggle both the enhanced wrapper
+        // (the visible control) and the native <select>.
+        this.toggleCustomSelectHidden(UI.previewTheme, isColor);
+        this.toggleCustomSelectHidden(UI.previewThemeRgb, !isColor);
+
+        // invert-bg only applies to mono1 (read by buildMonoMap).
+        this.setControlDisabled(UI.invertBgCheck, !isMono, UI.invertBgWrap);
+    },
+
+    toggleCustomSelectHidden(select, hidden) {
+        if (!select) {
+            return;
+        }
+        select.classList.toggle("is-hidden", hidden);
+        const wrapper = select.nextElementSibling;
+        if (wrapper && wrapper.classList.contains("custom-select-wrapper")) {
+            wrapper.classList.toggle("is-hidden", hidden);
+        }
     },
 
     updatePreview(isLive = false) {

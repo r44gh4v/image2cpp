@@ -37,5 +37,5 @@ export const ALLOWED_VALUES = {
     pixelFormat: ["mono1", "rgb565", "rgb888", "alpha"],
     outputFormat: ["arduino", "arduino_single", "adafruit_gfx", "plain"],
     drawMode: ["horizontal", "vertical"],
-    theme: ["oled-white", "oled-blue", "oled-yellow", "lcd-green"],
+    theme: ["oled-white", "oled-blue", "oled-yellow", "lcd-green", "rgb-true", "rgb-565"],
 };
