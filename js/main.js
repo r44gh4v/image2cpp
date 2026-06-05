@@ -98,6 +98,9 @@ const UI = {
         this.bitSwapCheck = document.getElementById("setting-bitswap");
         this.bitSwapWrap = document.getElementById("wrap-bitswap");
         this.ditherGroup = document.getElementById("group-dither");
+        this.gfxGroup = document.getElementById("group-gfx");
+        this.gfxFirstAscii = document.getElementById("gfx-first-ascii");
+        this.gfxXAdvance = document.getElementById("gfx-x-advance");
 
         // Start with bit-swap off (after the element is cached).
         if (this.bitSwapCheck) {
@@ -258,11 +261,13 @@ const UI = {
             this.optDither,
             this.bitSwapCheck,
             this.previewTheme,
+            this.gfxFirstAscii,
+            this.gfxXAdvance,
         ];
 
         triggerElements.forEach((element) => {
             element.addEventListener("change", () => {
-                if (element === this.optPixelFormat) {
+                if (element === this.optPixelFormat || element === this.optFormat) {
                     App.reconcileControls();
                 }
 
@@ -499,6 +504,8 @@ const App = {
             drawMode: UI.optDrawMode.value,
             varName: UI.optVarName.value || "byte array",
             theme: UI.previewTheme.value,
+            firstAsciiChar: UI.gfxFirstAscii ? UI.gfxFirstAscii.value : 48,
+            xAdvance: UI.gfxXAdvance ? UI.gfxXAdvance.value : 0,
         };
 
         const base = normalizeSettings(baseRaw);
@@ -627,15 +634,20 @@ const App = {
     },
 
     reconcileControls() {
-        const format = UI.optPixelFormat ? UI.optPixelFormat.value : "mono1";
+        const isGfx = UI.optFormat.value === "adafruit_gfx";
+        if (isGfx && UI.optPixelFormat.value !== "mono1") {
+            this.setCustomSelectValue(UI.optPixelFormat, "mono1");
+        }
+        UI.gfxGroup.classList.toggle("is-hidden", !isGfx);
+        this.setControlDisabled(UI.optPixelFormat, isGfx, UI.optPixelFormat.closest(".setting-group"));
+
+        const format = UI.optPixelFormat.value;
         const isMono = format === "mono1";
         const isAlpha = format === "alpha";
         const isColor = format === "rgb565" || format === "rgb888";
-
-        if (!isMono && UI.optDrawMode && UI.optDrawMode.value !== "horizontal") {
+        if (!isMono && UI.optDrawMode.value !== "horizontal") {
             this.setCustomSelectValue(UI.optDrawMode, "horizontal");
         }
-
         this.setControlDisabled(UI.optDrawMode, !isMono);
         this.setControlDisabled(UI.optDither, !isMono, UI.ditherGroup);
         this.setControlDisabled(UI.thresholdInput, isColor, UI.thresholdInput.closest(".setting-group"));

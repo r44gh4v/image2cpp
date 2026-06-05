@@ -172,9 +172,19 @@
                 </div>
                 <div class="setting-group mt-2">
                     <select id="output-format" class="custom-select">
-                        <option value="arduino">Arduino PROGMEM</option>
-                        <option value="plain">Plain C/C Array</option>
+                        <option value="arduino">Arduino PROGMEM (multi)</option>
+                        <option value="arduino_single">Arduino single bitmap</option>
+                        <option value="adafruit_gfx">Adafruit GFXbitmapFont</option>
+                        <option value="plain">Plain C array</option>
                     </select>
+                </div>
+                <div class="setting-group mt-2 is-hidden" id="group-gfx">
+                    <label>GFX font settings</label>
+                    <div class="size-inputs">
+                        <input type="number" id="gfx-first-ascii" value="48" min="0" max="255" aria-label="First ASCII char">
+                        <input type="number" id="gfx-x-advance" value="0" min="0" max="255" aria-label="x advance">
+                    </div>
+                    <div class="note">First ASCII char (dec) &middot; x-advance. Used when frames aren't single-character glyphs.</div>
                 </div>
                 <div class="setting-group mt-2">
                     <input type="text" id="var-name" value="byte array" placeholder="Variable Name">

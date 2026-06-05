@@ -2,7 +2,7 @@ import { normalizeSettings, mergeFrameTuning } from "../core/settings.js";
 import { processFrame } from "../imaging/processor.js";
 import * as Frames from "../workflow/frames.js";
 import { buildTokens } from "./packing.js";
-import { formatPlain, formatArduinoMulti } from "./formats.js";
+import { formatPlain, formatArduinoMulti, formatArduinoSingle, formatAdafruitGfx } from "./formats.js";
 
 function pickPixelData(result, pixelFormat) {
     if (pixelFormat === "rgb565") return result.rgb565Data;
@@ -26,6 +26,8 @@ function renderFrames(safe) {
 const FORMATTERS = {
     plain: formatPlain,
     arduino: formatArduinoMulti,
+    arduino_single: formatArduinoSingle,
+    adafruit_gfx: formatAdafruitGfx,
 };
 
 export function generate(settings) {

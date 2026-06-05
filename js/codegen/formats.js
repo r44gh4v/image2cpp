@@ -47,3 +47,34 @@ export function formatArduinoMulti(frames, safe) {
     );
     return blocks.join("\n\n") + "\n";
 }
+
+export function formatArduinoSingle(frames, safe) {
+    const type = cTypeFor(safe.pixelFormat);
+    const body = frames.map((f) => `\t${frameComment(f)}\n${indentTokens(f.tokens)}`).join("\n");
+    return `const ${type} ${safe.varName} [] PROGMEM = {\n${body}\n};\n`;
+}
+
+export function formatAdafruitGfx(frames, safe) {
+    const id = safe.varName;
+    const bitmapBody = frames.map((f) => `\t${frameComment(f)}\n${indentTokens(f.tokens)}`).join("\n");
+    let out = `const unsigned char ${id}Bitmap [] PROGMEM = {\n${bitmapBody}\n};\n\n`;
+
+    const allSingleChar = frames.length > 0 && frames.every((f) => f.name && f.name.length === 1);
+    let nextChar = safe.firstAsciiChar;
+    let offset = 0;
+
+    out += `const GFXbitmapGlyph ${id}Glyphs [] PROGMEM = {\n`;
+    out += frames.map((f, i) => {
+        const ch = allSingleChar ? f.name : String.fromCharCode(nextChar++);
+        const line = `\t{ ${offset}, ${f.width}, ${f.height}, ${safe.xAdvance}, '${ch}' }`;
+        offset += f.tokens.length;
+        return line + (i < frames.length - 1 ? "," : "") + ` // '${f.name}'`;
+    }).join("\n");
+    out += `\n};\n\n`;
+
+    out += `const GFXbitmapFont ${id}Font PROGMEM = {\n`
+        + `\t(uint8_t *)${id}Bitmap,\n`
+        + `\t(GFXbitmapGlyph *)${id}Glyphs,\n`
+        + `\t${frames.length}\n};\n`;
+    return out;
+}
