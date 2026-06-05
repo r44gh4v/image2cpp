@@ -1545,21 +1545,14 @@ input[type="radio"],
     pointer-events: none;
 }
 
-.code-input-area {
-    display: flex;
-    flex-direction: column;
-}
-
 #paste-input {
     width: 100%;
     min-height: 100px;
-    resize: vertical;
+    resize: none;
     outline: none;
     border: 1px solid var(--border);
-    border-top: none;
-    border-radius: 0 0 var(--radius-sm) var(--radius-sm);
+    border-radius: var(--radius-sm);
     padding: 0.75rem;
-    overflow-x: auto;
     white-space: pre-wrap;
     line-height: 1.6;
     font-family: var(--font-code);

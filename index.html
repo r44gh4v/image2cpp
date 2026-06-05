@@ -54,13 +54,8 @@
                     <input type="file" id="file-input" class="is-hidden" accept="image/png, image/jpeg, image/gif, image/webp" multiple>
                 </div>
                 <div id="pane-paste" class="is-hidden">
-                    <div class="code-input-area">
-                        <div class="code-toolbar">
-                            <span class="code-title">Byte Array</span>
-                            <div class="code-actions">
-                                <button class="action-btn outline" id="btn-clear-paste" type="button">Clear</button>
-                            </div>
-                        </div>
+                    <div class="setting-group">
+                        <label for="paste-input">Paste byte array</label>
                         <textarea id="paste-input" spellcheck="false" placeholder="Paste 0xFF, 0x00, &hellip; or a whole Arduino array"></textarea>
                     </div>
                     <div class="setting-group mt-2">
